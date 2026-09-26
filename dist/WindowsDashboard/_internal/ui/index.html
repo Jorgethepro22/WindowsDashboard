@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Windows Secondary Monitor Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- TOP HEADER -->
+    <header class="dashboard-header">
+      <!-- CLOCK & DATE -->
+      <div class="header-clock-section">
+        <div class="clock-display">
+          <span id="clock-hours">00</span><span class="clock-colon">:</span><span id="clock-minutes">00</span><span class="clock-colon">:</span><span id="clock-seconds" class="clock-sec">00</span>
+        </div>
+        <div class="date-display" id="date-display">
+          Cargando fecha...
+        </div>
+      </div>
+
+      <!-- CENTER BRANDING / STATUS PILL -->
+      <div class="header-center">
+        <div class="system-status-badge">
+          <span class="pulse-indicator"></span>
+          <span class="status-text">GAMING HUD &bull; PC DASHBOARD</span>
+        </div>
+      </div>
+
+      <!-- WEATHER & CONTROLS -->
+      <div class="header-controls-section">
+        <!-- WEATHER WIDGET -->
+        <div class="weather-pill" id="weather-widget">
+          <div class="weather-icon-wrapper" id="weather-icon">
+            <svg class="w-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5c.55 0 1 .45 1 1v2c0 .55-.45 1-1 1s-1-.45-1-1V3c0-.55.45-1 1-1zm0 18c.55 0 1 .45 1 1v2c0 .55-.45 1-1 1s-1-.45-1-1v-2c0-.55.45-1 1-1zm10-8c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1s.45-1 1-1h2c.55 0 1 .45 1 1zM5 12c0 .55-.45 1-1 1H2c-.55 0-1-.45-1-1s.45-1 1-1h2c.55 0 1 .45 1 1z"/></svg>
+          </div>
+          <div class="weather-info">
+            <div class="weather-temp-row">
+              <span id="weather-temp" class="weather-temp">--°C</span>
+              <span id="weather-city" class="weather-city">Sevilla</span>
+            </div>
+            <div id="weather-desc" class="weather-desc">Actualizando...</div>
+          </div>
+        </div>
+
+        <!-- MONITOR SELECTOR -->
+        <div class="monitor-selector-wrapper">
+          <select id="monitor-select" title="Seleccionar Monitor">
+            <option value="0">Monitor 1</option>
+          </select>
+        </div>
+
+        <!-- FULLSCREEN BUTTON -->
+        <button id="btn-fullscreen" class="btn-icon" title="Alternar Pantalla Completa">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN GRID CARDS -->
+    <main class="dashboard-grid">
+      
+      <!-- CARD 1: CPU Telemetry -->
+      <section class="card hw-card cpu-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">PROCESADOR</span>
+            <h2 class="card-title" id="cpu-name-title">Core Ultra 5 250K Plus</h2>
+          </div>
+          <div class="card-extra" id="cpu-temp-badge">
+            <span class="temp-indicator">-- °C</span>
+          </div>
+        </div>
+        <div class="gauge-container">
+          <div class="circular-gauge" id="cpu-gauge">
+            <svg viewBox="0 0 140 140" class="gauge-svg">
+              <circle class="gauge-bg" cx="70" cy="70" r="58"></circle>
+              <circle class="gauge-fill cpu-fill" cx="70" cy="70" r="58" id="cpu-gauge-circle"></circle>
+            </svg>
+            <div class="gauge-value-overlay">
+              <span class="gauge-number" id="cpu-percent">0</span>
+              <span class="gauge-unit">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="hw-details-list">
+          <div class="detail-row">
+            <span class="detail-label">Núcleos / Hilos</span>
+            <span class="detail-value" id="cpu-cores">-- / --</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Frecuencia</span>
+            <span class="detail-value" id="cpu-freq">0.0 GHz</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Consumo</span>
+            <span class="detail-value" id="cpu-power">0 W</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 2: GPU Telemetry (RTX 4060 Ti) -->
+      <section class="card hw-card gpu-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">GRÁFICA</span>
+            <h2 class="card-title" id="gpu-name-title">NVIDIA GPU</h2>
+          </div>
+          <div class="card-extra" id="gpu-temp-badge">
+            <span class="temp-indicator" id="gpu-temp-val">-- °C</span>
+          </div>
+        </div>
+        <div class="gauge-container">
+          <div class="circular-gauge" id="gpu-gauge">
+            <svg viewBox="0 0 140 140" class="gauge-svg">
+              <circle class="gauge-bg" cx="70" cy="70" r="58"></circle>
+              <circle class="gauge-fill gpu-fill" cx="70" cy="70" r="58" id="gpu-gauge-circle"></circle>
+            </svg>
+            <div class="gauge-value-overlay">
+              <span class="gauge-number" id="gpu-percent">0</span>
+              <span class="gauge-unit">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="vram-section">
+          <div class="bar-header">
+            <span class="bar-title">Memoria VRAM</span>
+            <span class="bar-stats" id="vram-text">0.0 / 0.0 GB</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill vram-fill" id="vram-bar-fill" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="hw-details-list">
+          <div class="detail-row">
+            <span class="detail-label">Frecuencia Reloj</span>
+            <span class="detail-value" id="gpu-clock">0 MHz</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Consumo</span>
+            <span class="detail-value" id="gpu-power">0 W</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 3: RAM & Disks Telemetry -->
+      <section class="card hw-card ram-storage-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">MEMORIA & DISCOS</span>
+            <h2 class="card-title">RAM & ACTIVIDAD DISCOS</h2>
+          </div>
+          <span class="status-pill-small" id="ram-pct-pill">0%</span>
+        </div>
+        
+        <!-- RAM Linear Bar -->
+        <div class="resource-block">
+          <div class="bar-header">
+            <span class="bar-title">Memoria RAM</span>
+            <span class="bar-stats" id="ram-details">0.0 GB / 0.0 GB</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill ram-fill" id="ram-bar-fill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Dynamic Multi-Disks Container (Usage %, Read & Write speeds) -->
+        <div class="disks-container" id="disks-container">
+          <!-- Rendered dynamically by app.js -->
+        </div>
+
+        <!-- Network Transfer -->
+        <div class="network-telemetry">
+          <div class="net-row">
+            <div class="net-info">
+              <svg class="net-icon down" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              <span class="net-label">Descarga Red</span>
+            </div>
+            <span class="net-speed" id="net-down-speed">0.0 KB/s</span>
+          </div>
+          <div class="net-row">
+            <div class="net-info">
+              <svg class="net-icon up" viewBox="0 0 24 24"><path fill="currentColor" d="M5 15h4v6h6v-6h4l-7-7-7 7zm14-10V3H5v2h14z"/></svg>
+              <span class="net-label">Subida Red</span>
+            </div>
+            <span class="net-speed" id="net-up-speed">0.0 KB/s</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 4: Multimedia & Windows Audio -->
+      <section class="card media-audio-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">CENTRO MULTIMEDIA</span>
+            <h2 class="card-title">AUDIO & REPRODUCCIÓN</h2>
+          </div>
+          <div class="media-app-badge" id="media-app-badge">
+            <span>Windows SMTC</span>
+          </div>
+        </div>
+
+        <div class="media-audio-split">
+          <!-- LEFT: NOW PLAYING -->
+          <div class="now-playing-panel">
+            <div class="album-art-container">
+              <img id="album-cover" class="album-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%231f232d'><rect width='100' height='100'/><path fill='%23565d68' d='M50 35a15 15 0 100 30 15 15 0 000-30zm0 25a10 10 0 110-20 10 10 0 010 20z'/></svg>" alt="Album Cover">
+              <div class="album-glow"></div>
+            </div>
+            <div class="track-info">
+              <div class="track-title-wrapper">
+                <span class="track-title" id="track-title">Sin reproducción activa</span>
+              </div>
+              <span class="track-artist" id="track-artist">Esperando reproductor de Windows...</span>
+            </div>
+            <div class="media-controls">
+              <button class="btn-ctrl" id="btn-prev" title="Anterior">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+              </button>
+              <button class="btn-ctrl btn-play" id="btn-play-pause" title="Reproducir / Pausa">
+                <svg id="icon-play-state" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+              </button>
+              <button class="btn-ctrl" id="btn-next" title="Siguiente">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- RIGHT: WINDOWS MASTER VOLUME & DEVICE -->
+          <div class="audio-control-panel">
+            <div class="audio-device-row">
+              <span class="device-label">Salida Activa</span>
+              <span class="device-name" id="audio-device-name">Altavoces de Windows</span>
+            </div>
+            <div class="volume-slider-box">
+              <button id="btn-mute" class="btn-mute" title="Silenciar">
+                <svg id="icon-volume" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+              </button>
+              <div class="slider-wrapper">
+                <input type="range" id="volume-range" min="0" max="100" value="50" class="custom-slider">
+                <div class="slider-progress-bar" id="slider-bar-fill"></div>
+              </div>
+              <span class="volume-value-text" id="volume-val-text">50%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/clock.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

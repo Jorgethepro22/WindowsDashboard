@@ -1,0 +1,12 @@
+{
+  "target_monitor_index": 1,
+  "fullscreen": true,
+  "theme": "dark_crimson",
+  "refresh_interval_ms": 1000,
+  "weather": {
+    "city": "Sevilla",
+    "latitude": 37.3891,
+    "longitude": -5.9845,
+    "update_interval_minutes": 10
+  }
+}
