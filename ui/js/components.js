@@ -409,5 +409,500 @@ const WIDGET_DEFINITIONS = {
         </div>
       `;
     }
+  },
+  audio_meter: {
+    type: "audio_meter",
+    name: "Vúmetro de Audio",
+    defaultW: 2,
+    defaultH: 1,
+    render: (id) => `
+      <div class="card widget-card audio-meter-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget">
+          <span class="delete-x">×</span>
+        </div>
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">VÚMETRO</span>
+            <h2 class="card-title">NIVEL DE AUDIO</h2>
+          </div>
+          <div class="audio-meter-live-indicator">
+            <span class="live-dot"></span>
+            <span class="live-text">EN VIVO</span>
+          </div>
+        </div>
+        <div class="audio-meter-channels">
+          <!-- OUTPUT CHANNEL (LO QUE SE ESCUCHA) -->
+          <div class="meter-channel-row">
+            <div class="meter-channel-info">
+              <svg class="meter-channel-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+              <span class="meter-channel-label">Salida</span>
+            </div>
+            <div class="meter-track-container">
+              <div class="meter-track">
+                <div class="meter-fill meter-fill-output" id="${id}_output_fill" style="clip-path: inset(0 100% 0 0 round 4px);"></div>
+                <div class="meter-peak-marker" id="${id}_output_marker" style="left: 0%; opacity: 0;"></div>
+              </div>
+            </div>
+            <div class="meter-values-box">
+              <span class="meter-value-text" id="${id}_output_val">0%</span>
+              <span class="meter-db-text" id="${id}_output_db">-inf dB</span>
+            </div>
+          </div>
+
+          <!-- INPUT CHANNEL (MICRÓFONO) -->
+          <div class="meter-channel-row">
+            <div class="meter-channel-info">
+              <svg class="meter-channel-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+              <span class="meter-channel-label">Micro</span>
+            </div>
+            <div class="meter-track-container">
+              <div class="meter-track">
+                <div class="meter-fill meter-fill-input" id="${id}_input_fill" style="clip-path: inset(0 100% 0 0 round 4px);"></div>
+                <div class="meter-peak-marker" id="${id}_input_marker" style="left: 0%; opacity: 0;"></div>
+              </div>
+            </div>
+            <div class="meter-values-box">
+              <span class="meter-value-text" id="${id}_input_val">0%</span>
+              <span class="meter-db-text" id="${id}_input_db">-inf dB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  stopwatch: {
+    type: "stopwatch",
+    name: "Cronómetro",
+    defaultW: 1,
+    defaultH: 1,
+    render: (id) => `
+      <div class="card widget-card stopwatch-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">CRONO</span>
+            <h2 class="card-title">CRONÓMETRO</h2>
+          </div>
+        </div>
+        <div class="stopwatch-display-container">
+          <div class="stopwatch-time" id="${id}_display">00:00<span class="stopwatch-millis">.0</span></div>
+        </div>
+        <div class="stopwatch-actions">
+          <button type="button" class="btn-tool-action btn-sw-start" id="${id}_btn_start" title="Iniciar / Pausar">
+            <svg class="sw-icon-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            <svg class="sw-icon-pause" viewBox="0 0 24 24" style="display:none;"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button type="button" class="btn-tool-action btn-sw-reset" id="${id}_btn_reset" title="Reiniciar">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+          </button>
+        </div>
+      </div>
+    `
+  },
+  timer: {
+    type: "timer",
+    name: "Temporizador",
+    defaultW: 1,
+    defaultH: 1,
+    render: (id) => `
+      <div class="card widget-card timer-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">TIEMPO</span>
+            <h2 class="card-title">TEMPORIZADOR</h2>
+          </div>
+          <button type="button" class="btn-timer-settings" id="${id}_btn_cfg" title="Ajustar tiempo (Días, Horas, Minutos, Segundos)">⚙</button>
+        </div>
+        <div class="timer-display-container" id="${id}_display_box" title="Haz clic para ajustar el tiempo">
+          <div class="timer-time" id="${id}_display">05:00</div>
+        </div>
+        <div class="timer-actions">
+          <button type="button" class="btn-tool-action btn-tm-start" id="${id}_btn_start" title="Iniciar / Pausar">
+            <svg class="tm-icon-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            <svg class="tm-icon-pause" viewBox="0 0 24 24" style="display:none;"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button type="button" class="btn-tool-action btn-tm-reset" id="${id}_btn_reset" title="Reiniciar">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+          </button>
+        </div>
+      </div>
+    `
+  },
+  notes: {
+    type: "notes",
+    name: "Notas & Tareas",
+    defaultW: 3,
+    defaultH: 3,
+    render: (id) => `
+      <div class="card widget-card notes-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-badge">PRODUCTIVIDAD</span>
+            <h2 class="card-title">NOTAS & TAREAS</h2>
+          </div>
+          <button type="button" class="btn-notes-new" id="${id}_btn_new" title="Crear nueva nota">+ Nueva Nota</button>
+        </div>
+        <div class="notes-body-split">
+          <!-- LEFT: NOTES LIST -->
+          <div class="notes-sidebar">
+            <div class="notes-list-scrollable" id="${id}_notes_list">
+              <!-- Dynamically rendered note item items -->
+            </div>
+          </div>
+          <!-- RIGHT: ACTIVE NOTE EDITOR -->
+          <div class="notes-editor-panel" id="${id}_editor_panel">
+            <div class="notes-editor-header">
+              <input type="text" class="notes-title-input" id="${id}_note_title" placeholder="Título de la nota..." />
+              <div class="notes-mode-pills">
+                <button type="button" class="notes-mode-pill active" id="${id}_mode_text" data-mode="text">Texto</button>
+                <button type="button" class="notes-mode-pill" id="${id}_mode_tasks" data-mode="tasks">Tareas</button>
+                <button type="button" class="notes-btn-delete-note" id="${id}_btn_delete_note" title="Eliminar esta nota">🗑</button>
+              </div>
+            </div>
+            <!-- TEXT AREA VIEW -->
+            <div class="notes-view-text" id="${id}_view_text">
+              <textarea class="notes-textarea" id="${id}_note_body" placeholder="Escribe aquí tu nota o apuntes..."></textarea>
+            </div>
+            <!-- TASKS CHECKLIST VIEW -->
+            <div class="notes-view-tasks" id="${id}_view_tasks" style="display:none;">
+              <div class="tasks-add-row">
+                <input type="text" class="tasks-new-input" id="${id}_task_input" placeholder="Nueva tarea y presiona Enter..." />
+                <button type="button" class="btn-task-add" id="${id}_btn_add_task">Añadir</button>
+              </div>
+              <div class="tasks-list-scrollable" id="${id}_tasks_list">
+                <!-- Checkbox task items -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  photo_2x2: {
+    type: "photo_2x2",
+    name: "Marco de Foto 2x2",
+    defaultW: 2,
+    defaultH: 2,
+    render: (id, customData) => {
+      const img = customData?.image || "";
+      return `
+        <div class="card widget-card photo-card ${img ? 'has-photo' : ''}" id="${id}" data-photo-size="2x2">
+          <div class="widget-edit-corner btn-photo-change" title="Elegir foto de tu PC">
+            <span class="edit-pencil-icon">📷</span>
+          </div>
+          <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+          <div class="photo-container" id="${id}_container">
+            ${img ? `<div class="photo-img-fill" style="background-image: url('${img}');"></div>` : `
+              <div class="photo-placeholder">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <span>Haz clic en 📷 para elegir una foto</span>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+  },
+  photo_2x3: {
+    type: "photo_2x3",
+    name: "Marco de Foto 2x3",
+    defaultW: 2,
+    defaultH: 3,
+    render: (id, customData) => {
+      const img = customData?.image || "";
+      return `
+        <div class="card widget-card photo-card photo-vertical ${img ? 'has-photo' : ''}" id="${id}" data-photo-size="2x3">
+          <div class="widget-edit-corner btn-photo-change" title="Elegir foto de tu PC">
+            <span class="edit-pencil-icon">📷</span>
+          </div>
+          <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+          <div class="photo-container" id="${id}_container">
+            ${img ? `<div class="photo-img-fill" style="background-image: url('${img}');"></div>` : `
+              <div class="photo-placeholder">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <span>Haz clic en 📷 para elegir una foto</span>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+  },
+  photo_3x2: {
+    type: "photo_3x2",
+    name: "Marco de Foto 3x2",
+    defaultW: 3,
+    defaultH: 2,
+    render: (id, customData) => {
+      const img = customData?.image || "";
+      return `
+        <div class="card widget-card photo-card photo-horizontal ${img ? 'has-photo' : ''}" id="${id}" data-photo-size="3x2">
+          <div class="widget-edit-corner btn-photo-change" title="Elegir foto de tu PC">
+            <span class="edit-pencil-icon">📷</span>
+          </div>
+          <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+          <div class="photo-container" id="${id}_container">
+            ${img ? `<div class="photo-img-fill" style="background-image: url('${img}');"></div>` : `
+              <div class="photo-placeholder">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <span>Haz clic en 📷 para elegir una foto</span>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+  },
+  slideshow: {
+    type: "slideshow",
+    name: "Slideshow de Fotos",
+    defaultW: 3,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card slideshow-card" id="${id}">
+        <div class="widget-edit-corner btn-slideshow-config" title="Añadir fotos al álbum">
+          <span class="edit-pencil-icon">🖼</span>
+        </div>
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="slideshow-container" id="${id}_container">
+          <div class="slideshow-slide" id="${id}_slide"></div>
+          <div class="slideshow-placeholder" id="${id}_empty_hint">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4l2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/></svg>
+            <span>Haz clic para configurar el álbum de fotos</span>
+          </div>
+        </div>
+        <!-- FLOATING BOTTOM CONTROLS -->
+        <div class="slideshow-controls-overlay">
+          <button type="button" class="btn-ss-ctrl btn-ss-prev" id="${id}_btn_prev" title="Anterior">◀</button>
+          <button type="button" class="btn-ss-ctrl btn-ss-toggle" id="${id}_btn_toggle" title="Pausar / Reanudar">⏸</button>
+          <button type="button" class="btn-ss-ctrl btn-ss-next" id="${id}_btn_next" title="Siguiente">▶</button>
+          <span class="ss-counter" id="${id}_counter">0 / 0</span>
+          <button type="button" class="btn-ss-ctrl btn-ss-interval" id="${id}_btn_interval" title="Frecuencia de rotación (clic para alternar)">10s</button>
+          <button type="button" class="btn-ss-ctrl btn-ss-album" id="${id}_btn_album" title="Gestionar Álbum de Fotos">⚙</button>
+        </div>
+      </div>
+    `
+  },
+  calculator: {
+    type: "calculator",
+    name: "Calculadora",
+    defaultW: 2,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card calculator-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="calc-screen">
+          <div class="calc-history" id="${id}_calc_history">&nbsp;</div>
+          <div class="calc-main-row">
+            <button type="button" class="btn-calc-copy" id="${id}_calc_copy" title="Copiar resultado">📋</button>
+            <div class="calc-result" id="${id}_calc_result">0</div>
+          </div>
+        </div>
+        <div class="calc-keypad">
+          <button type="button" class="calc-key calc-op-clear" data-action="clear">C</button>
+          <button type="button" class="calc-key calc-op-fn" data-action="sign">±</button>
+          <button type="button" class="calc-key calc-op-fn" data-action="percent">%</button>
+          <button type="button" class="calc-key calc-op-math" data-action="div">÷</button>
+
+          <button type="button" class="calc-key calc-num" data-num="7">7</button>
+          <button type="button" class="calc-key calc-num" data-num="8">8</button>
+          <button type="button" class="calc-key calc-num" data-num="9">9</button>
+          <button type="button" class="calc-key calc-op-math" data-action="mul">×</button>
+
+          <button type="button" class="calc-key calc-num" data-num="4">4</button>
+          <button type="button" class="calc-key calc-num" data-num="5">5</button>
+          <button type="button" class="calc-key calc-num" data-num="6">6</button>
+          <button type="button" class="calc-key calc-op-math" data-action="sub">−</button>
+
+          <button type="button" class="calc-key calc-num" data-num="1">1</button>
+          <button type="button" class="calc-key calc-num" data-num="2">2</button>
+          <button type="button" class="calc-key calc-num" data-num="3">3</button>
+          <button type="button" class="calc-key calc-op-math" data-action="add">+</button>
+
+          <button type="button" class="calc-key calc-num calc-zero" data-num="0">0</button>
+          <button type="button" class="calc-key calc-num" data-action="dot">.</button>
+          <button type="button" class="calc-key calc-op-equals" data-action="equals">=</button>
+        </div>
+      </div>
+    `
+  },
+  currency: {
+    type: "currency",
+    name: "Conversor de Divisas",
+    defaultW: 2,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card currency-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">FINANZAS</span>
+            <h2 class="card-title">DIVISAS</h2>
+          </div>
+          <span class="currency-status" id="${id}_cur_status">En vivo</span>
+        </div>
+        <div class="currency-converter-body">
+          <div class="currency-input-row">
+            <input type="number" class="currency-val-input" id="${id}_cur_amount" value="1" step="any" />
+            <select class="currency-select" id="${id}_cur_from">
+              <option value="EUR" selected>EUR (€)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="MXN">MXN ($)</option>
+              <option value="CAD">CAD ($)</option>
+              <option value="CHF">CHF (Fr)</option>
+              <option value="CNY">CNY (¥)</option>
+              <option value="AUD">AUD ($)</option>
+              <option value="BRL">BRL (R$)</option>
+            </select>
+          </div>
+          <div class="currency-swap-row">
+            <div class="currency-divider-line"></div>
+            <button type="button" class="btn-currency-swap" id="${id}_cur_swap" title="Invertir divisas">⇄</button>
+            <div class="currency-divider-line"></div>
+          </div>
+          <div class="currency-output-row">
+            <div class="currency-res-display" id="${id}_cur_result">--</div>
+            <select class="currency-select" id="${id}_cur_to">
+              <option value="EUR">EUR (€)</option>
+              <option value="USD" selected>USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="JPY">JPY (¥)</option>
+              <option value="MXN">MXN ($)</option>
+              <option value="CAD">CAD ($)</option>
+              <option value="CHF">CHF (Fr)</option>
+              <option value="CNY">CNY (¥)</option>
+              <option value="AUD">AUD ($)</option>
+              <option value="BRL">BRL (R$)</option>
+            </select>
+          </div>
+          <div class="currency-rate-sub" id="${id}_cur_rate_label">1 EUR ≈ -- USD</div>
+        </div>
+      </div>
+    `
+  },
+  calendar: {
+    type: "calendar",
+    name: "Calendario Mensual",
+    defaultW: 2,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card calendar-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="calendar-header-bar">
+          <button type="button" class="btn-cal-nav" id="${id}_cal_prev" title="Mes anterior">◀</button>
+          <span class="cal-month-title" id="${id}_cal_title">Enero 2026</span>
+          <button type="button" class="btn-cal-today" id="${id}_cal_today" title="Volver a hoy">Hoy</button>
+          <button type="button" class="btn-cal-nav" id="${id}_cal_next" title="Mes siguiente">▶</button>
+        </div>
+        <div class="calendar-weekdays-row">
+          <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <div class="calendar-grid-days" id="${id}_cal_grid">
+          <!-- Dynamically populated 35 or 42 day cells -->
+        </div>
+      </div>
+    `
+  },
+  unit_converter: {
+    type: "unit_converter",
+    name: "Conversor de Unidades",
+    defaultW: 2,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card unit-conv-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">UTILIDADES</span>
+            <h2 class="card-title">UNIDADES</h2>
+          </div>
+          <select class="unit-type-select" id="${id}_unit_cat">
+            <option value="length" selected>Longitud</option>
+            <option value="mass">Masa / Peso</option>
+            <option value="temp">Temperatura</option>
+            <option value="speed">Velocidad</option>
+            <option value="storage">Datos / Almacenamiento</option>
+          </select>
+        </div>
+        <div class="unit-conv-body">
+          <div class="unit-row">
+            <input type="number" class="unit-input-val" id="${id}_unit_val_from" value="1" step="any" />
+            <select class="unit-select" id="${id}_unit_from"></select>
+          </div>
+          <div class="unit-equals-icon">=</div>
+          <div class="unit-row">
+            <input type="number" class="unit-input-val unit-input-readonly" id="${id}_unit_val_to" readonly />
+            <select class="unit-select" id="${id}_unit_to"></select>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  translator: {
+    type: "translator",
+    name: "Traductor de Texto",
+    defaultW: 3,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card translator-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">TRADUCTOR</span>
+            <h2 class="card-title">TRADUCCIÓN RÁPIDA</h2>
+          </div>
+          <div class="translator-lang-selector">
+            <select class="tr-select-lang" id="${id}_tr_from">
+              <option value="auto">Auto (Detectar)</option>
+              <option value="es" selected>Español</option>
+              <option value="en">Inglés</option>
+              <option value="fr">Francés</option>
+              <option value="de">Alemán</option>
+              <option value="it">Italiano</option>
+              <option value="pt">Portugués</option>
+              <option value="ja">Japonés</option>
+              <option value="ru">Ruso</option>
+              <option value="zh-CN">Chino</option>
+            </select>
+            <button type="button" class="btn-tr-swap" id="${id}_tr_swap" title="Intercambiar idiomas">⇄</button>
+            <select class="tr-select-lang" id="${id}_tr_to">
+              <option value="es">Español</option>
+              <option value="en" selected>Inglés</option>
+              <option value="fr">Francés</option>
+              <option value="de">Alemán</option>
+              <option value="it">Italiano</option>
+              <option value="pt">Portugués</option>
+              <option value="ja">Japonés</option>
+              <option value="ru">Ruso</option>
+              <option value="zh-CN">Chino</option>
+            </select>
+          </div>
+        </div>
+        <div class="translator-panels-split">
+          <div class="tr-box">
+            <div class="tr-box-tools">
+              <span class="tr-box-label">Texto original</span>
+              <button type="button" class="btn-tr-tool" id="${id}_tr_paste" title="Pegar del portapapeles">📋 Pegar</button>
+            </div>
+            <textarea class="tr-textarea" id="${id}_tr_input" placeholder="Escribe o pega texto aquí..."></textarea>
+          </div>
+          <div class="tr-box">
+            <div class="tr-box-tools">
+              <span class="tr-box-label">Traducción</span>
+              <div class="tr-actions-right">
+                <button type="button" class="btn-tr-tool btn-tr-submit" id="${id}_tr_btn_do">Traducir</button>
+                <button type="button" class="btn-tr-tool" id="${id}_tr_copy" title="Copiar traducción">📋 Copiar</button>
+              </div>
+            </div>
+            <textarea class="tr-textarea tr-output" id="${id}_tr_output" placeholder="La traducción aparecerá aquí..." readonly></textarea>
+          </div>
+        </div>
+      </div>
+    `
   }
 };
+

@@ -201,7 +201,42 @@ class SystemStats:
         self.gpu_name = "NVIDIA GeForce RTX 4060 Ti"
         self.cpu_name = self._init_cpu_name()
         self.disk_monitor = DiskMonitor()
+        self.pdh_cpu_query = None
+        self.pdh_cpu_counter = None
+        self.last_cpu_percent = 0.0
+        self._init_pdh_cpu()
         self._init_gpu()
+
+    def _init_pdh_cpu(self):
+        if not _PDH_AVAILABLE:
+            return
+        try:
+            self.pdh_cpu_query = win32pdh.OpenQuery()
+            try:
+                # Task Manager standard counter for modern hybrid architectures
+                self.pdh_cpu_counter = win32pdh.AddEnglishCounter(
+                    self.pdh_cpu_query, r"\Processor Information(_Total)\% Processor Utility"
+                )
+            except Exception:
+                self.pdh_cpu_counter = win32pdh.AddEnglishCounter(
+                    self.pdh_cpu_query, r"\Processor(_Total)\% Processor Time"
+                )
+            win32pdh.CollectQueryData(self.pdh_cpu_query)
+        except Exception:
+            self.pdh_cpu_query = None
+            self.pdh_cpu_counter = None
+
+    def _get_pdh_cpu_percent(self):
+        if not self.pdh_cpu_query or not self.pdh_cpu_counter:
+            return None
+        try:
+            win32pdh.CollectQueryData(self.pdh_cpu_query)
+            status, val = win32pdh.GetFormattedCounterValue(self.pdh_cpu_counter, win32pdh.PDH_FMT_DOUBLE)
+            if status == 0:
+                return round(max(0.0, min(100.0, val)), 1)
+        except Exception:
+            pass
+        return None
 
     def _init_cpu_name(self):
         try:
@@ -244,8 +279,20 @@ class SystemStats:
         # Poll MSI Afterburner sensors for true CPU temp & clock
         ab = _read_afterburner_sensors()
 
-        # CPU
-        cpu_pct = psutil.cpu_percent(interval=None)
+        # CPU Usage: Prioritize MSI Afterburner (direct hardware) -> Windows PDH (Task Manager) -> psutil
+        ab_cpu = ab.get("CPU usage")
+        if ab_cpu is not None and ab_cpu >= 0:
+            cpu_pct = round(float(ab_cpu), 1)
+        else:
+            pdh_val = self._get_pdh_cpu_percent()
+            if pdh_val is not None:
+                cpu_pct = pdh_val
+            else:
+                cpu_pct = round(float(psutil.cpu_percent(interval=None)), 1)
+
+        if cpu_pct > 0:
+            self.last_cpu_percent = cpu_pct
+
         cpu_temp = ab.get("CPU temperature")
         if cpu_temp is None:
             # Fallback to WMI if Afterburner is closed

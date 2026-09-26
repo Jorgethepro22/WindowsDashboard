@@ -110,6 +110,9 @@ class ConfigManager:
             print(f"[ConfigManager] Error saving config: {e}")
             return False
 
+    def save(self):
+        return self.save_config()
+
     def get(self, key, default=None):
         return self.config.get(key, default)
 

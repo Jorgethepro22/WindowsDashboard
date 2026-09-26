@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
   <title>Windows Secondary Monitor Dashboard V2</title>
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
@@ -77,6 +78,74 @@
         <button id="btn-fullscreen" class="btn-icon" title="Alternar Pantalla Completa">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
         </button>
+
+        <!-- SETTINGS BUTTON & DROPDOWN PANEL -->
+        <div class="settings-wrapper">
+          <button id="btn-settings" class="btn-icon" title="Configuración">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </button>
+          
+          <div class="settings-dropdown-panel" id="settings-dropdown" style="display: none;">
+            <div class="settings-panel-header">
+              <span class="settings-panel-title">Configuración</span>
+              <button id="btn-close-settings" class="btn-settings-close" title="Cerrar">×</button>
+            </div>
+            
+            <div class="settings-panel-body">
+              <!-- LOCATION & WEATHER SECTION -->
+              <div class="settings-section">
+                <span class="settings-section-title">Ubicación y Clima</span>
+                
+                <!-- AUTO LOCATION TOGGLE -->
+                <label class="settings-toggle-row">
+                  <span class="settings-toggle-label">Detectar ubicación automáticamente</span>
+                  <input type="checkbox" id="checkbox-auto-location" class="settings-checkbox">
+                  <span class="settings-switch"></span>
+                </label>
+
+                <div class="settings-location-status" id="location-status-badge">
+                  <span class="loc-status-icon">📍</span>
+                  <span class="loc-status-text" id="location-status-text">Detectando ubicación...</span>
+                </div>
+
+                <!-- MANUAL CITY SEARCH -->
+                <div class="settings-field-group" id="manual-city-group">
+                  <label class="settings-field-label">Elegir ciudad manualmente:</label>
+                  <div class="city-search-container">
+                    <input type="text" id="input-city-search" class="settings-city-input" placeholder="Buscar ciudad (ej. Tokio, New York, Madrid)..." autocomplete="off">
+                    <span class="city-search-spinner" id="city-search-spinner" style="display: none;">⏳</span>
+                    <div class="city-suggestions-list" id="city-suggestions-list" style="display: none;">
+                      <!-- Dynamically rendered autocomplete items -->
+                    </div>
+                  </div>
+                  <span class="settings-field-hint">Escribe 2 letras para buscar cualquier ciudad o pueblo del mundo.</span>
+                </div>
+              </div>
+
+              <!-- LANGUAGE SECTION -->
+              <div class="settings-section">
+                <span class="settings-section-title">Idioma</span>
+                <div class="settings-field-group">
+                  <label class="settings-field-label">Idioma del panel:</label>
+                  <select id="select-app-language" class="settings-select" title="Seleccionar idioma">
+                    <option value="es" selected>Español (Original)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- SYSTEM SECTION -->
+              <div class="settings-section">
+                <span class="settings-section-title">Sistema</span>
+                <label class="settings-toggle-row">
+                  <span class="settings-toggle-label">Iniciar con Windows</span>
+                  <input type="checkbox" id="checkbox-start-with-windows" class="settings-checkbox">
+                  <span class="settings-switch"></span>
+                </label>
+                <span class="settings-field-hint" style="margin-top: 0.35rem; display: block;">Ejecutar WindowsDashboard automáticamente al iniciar sesión en el PC.</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -104,60 +173,174 @@
           <span>Formato Cuadrícula:</span>
         </div>
         <select id="select-grid-size" class="drawer-grid-select" title="Seleccionar tamaño de cuadrícula">
-          <option value="8x5">8 x 5 (Estándar)</option>
-          <option value="6x4">6 x 4 (Grande)</option>
+          <option value="8x5">8 x 5 (Grande)</option>
+          <option value="6x4">6 x 4 (Pequeño)</option>
         </select>
       </div>
+
+      <!-- CATEGORY FILTER BAR -->
+      <div class="drawer-category-filter" id="drawer-category-filter">
+        <button type="button" class="drawer-cat-btn active" data-filter="all">Todos</button>
+        <button type="button" class="drawer-cat-btn" data-filter="recursos">Recursos</button>
+        <button type="button" class="drawer-cat-btn" data-filter="media">Media & Audio</button>
+        <button type="button" class="drawer-cat-btn" data-filter="utilidades">Utilidades</button>
+        <button type="button" class="drawer-cat-btn" data-filter="reloj">Reloj & Tiempo</button>
+        <button type="button" class="drawer-cat-btn" data-filter="productividad">Productividad</button>
+        <button type="button" class="drawer-cat-btn" data-filter="fotos_accesos">Fotos & Accesos</button>
+      </div>
+
       <p class="drawer-hint">Arrastra un widget a la cuadrícula. La ventana se empequeñece al arrastrar.</p>
       <div class="drawer-catalog-list" id="drawer-catalog-list">
-        <div class="catalog-item" draggable="true" data-widget-type="cpu">
+        <!-- RECURSOS -->
+        <div class="catalog-item" draggable="true" data-widget-type="cpu" data-category="recursos">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">2x2</span>
             <span class="catalog-item-name">CPU Telemetría</span>
           </div>
           <span class="catalog-item-desc">Uso, reloj, vatios y temperatura</span>
         </div>
-        <div class="catalog-item" draggable="true" data-widget-type="gpu">
+        <div class="catalog-item" draggable="true" data-widget-type="gpu" data-category="recursos">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">2x2</span>
             <span class="catalog-item-name">GPU RTX 4060 Ti</span>
           </div>
           <span class="catalog-item-desc">Uso, VRAM, reloj, vatios y temp</span>
         </div>
-        <div class="catalog-item" draggable="true" data-widget-type="disks">
+        <div class="catalog-item" draggable="true" data-widget-type="disks" data-category="recursos">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">2x2</span>
             <span class="catalog-item-name">Discos & RAM</span>
           </div>
           <span class="catalog-item-desc">Velocidad y uso de C:, D:, E: + RAM</span>
         </div>
-        <div class="catalog-item" draggable="true" data-widget-type="summary">
+        <div class="catalog-item" draggable="true" data-widget-type="summary" data-category="recursos">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">2x2</span>
             <span class="catalog-item-name">Recursos Simplificados</span>
           </div>
           <span class="catalog-item-desc">Barras de CPU, GPU, RAM, VRAM, Discos, Red</span>
         </div>
-        <div class="catalog-item" draggable="true" data-widget-type="media">
+
+        <!-- MEDIA & AUDIO -->
+        <div class="catalog-item" draggable="true" data-widget-type="media" data-category="media">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">3x1</span>
             <span class="catalog-item-name">Reproductor Multimedia</span>
           </div>
           <span class="catalog-item-desc">Carátula, título, artista y controles</span>
         </div>
-        <div class="catalog-item" draggable="true" data-widget-type="audio">
+        <div class="catalog-item" draggable="true" data-widget-type="audio" data-category="media">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">2x2</span>
             <span class="catalog-item-name">Audio E/S</span>
           </div>
           <span class="catalog-item-desc">Selector de entrada/salida y volumen</span>
         </div>
-        <div class="catalog-item" draggable="true" data-widget-type="shortcut">
+        <div class="catalog-item" draggable="true" data-widget-type="audio_meter" data-category="media">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x1</span>
+            <span class="catalog-item-name">Vúmetro de Audio</span>
+          </div>
+          <span class="catalog-item-desc">Barritas de nivel en vivo con dB precisos</span>
+        </div>
+
+        <!-- RELOJ & TIEMPO -->
+        <div class="catalog-item" draggable="true" data-widget-type="stopwatch" data-category="reloj">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">1x1</span>
+            <span class="catalog-item-name">Cronómetro</span>
+          </div>
+          <span class="catalog-item-desc">Play, pausa, reinicio y décimas</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="timer" data-category="reloj">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">1x1</span>
+            <span class="catalog-item-name">Temporizador</span>
+          </div>
+          <span class="catalog-item-desc">Cuenta atrás con botones rápidos (+1m, +5m) y alarma</span>
+        </div>
+
+        <!-- PRODUCTIVIDAD -->
+        <div class="catalog-item" draggable="true" data-widget-type="notes" data-category="productividad">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">3x3</span>
+            <span class="catalog-item-name">Notas & Tareas</span>
+          </div>
+          <span class="catalog-item-desc">Gestor de notas y checklist de tareas con scroll</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="calendar" data-category="productividad">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x2</span>
+            <span class="catalog-item-name">Calendario Mensual</span>
+          </div>
+          <span class="catalog-item-desc">Vista completa de mes con navegación y día actual</span>
+        </div>
+
+        <!-- UTILIDADES -->
+        <div class="catalog-item" draggable="true" data-widget-type="calculator" data-category="utilidades">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x2</span>
+            <span class="catalog-item-name">Calculadora</span>
+          </div>
+          <span class="catalog-item-desc">Operaciones matemáticas con historial y copiar</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="currency" data-category="utilidades">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x2</span>
+            <span class="catalog-item-name">Conversor de Divisas</span>
+          </div>
+          <span class="catalog-item-desc">Conversión de divisas al instante (EUR, USD, GBP, etc.)</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="unit_converter" data-category="utilidades">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x2</span>
+            <span class="catalog-item-name">Conversor de Unidades</span>
+          </div>
+          <span class="catalog-item-desc">Longitud, peso, temperatura, velocidad y datos</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="translator" data-category="utilidades">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">3x2</span>
+            <span class="catalog-item-name">Traductor de Texto</span>
+          </div>
+          <span class="catalog-item-desc">Traducción rápida con botones de pegar y copiar</span>
+        </div>
+
+        <!-- FOTOS & ACCESOS -->
+        <div class="catalog-item" draggable="true" data-widget-type="shortcut" data-category="fotos_accesos">
           <div class="catalog-item-header">
             <span class="catalog-item-badge">1x1</span>
             <span class="catalog-item-name">Acceso Directo</span>
           </div>
-          <span class="catalog-item-desc">Abre webs o archivos con 1 clic (Stream Deck)</span>
+          <span class="catalog-item-desc">Abre webs o apps con 1 clic (Stream Deck)</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="photo_2x2" data-category="fotos_accesos">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x2</span>
+            <span class="catalog-item-name">Marco de Foto 2x2</span>
+          </div>
+          <span class="catalog-item-desc">Imagen personalizada de tu ordenador</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="photo_2x3" data-category="fotos_accesos">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x3</span>
+            <span class="catalog-item-name">Marco de Foto 2x3</span>
+          </div>
+          <span class="catalog-item-desc">Formato vertical de alta resolución</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="photo_3x2" data-category="fotos_accesos">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">3x2</span>
+            <span class="catalog-item-name">Marco de Foto 3x2</span>
+          </div>
+          <span class="catalog-item-desc">Formato apaisado panorámico</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="slideshow" data-category="fotos_accesos">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">3x2</span>
+            <span class="catalog-item-name">Slideshow de Fotos</span>
+          </div>
+          <span class="catalog-item-desc">Álbum dinámico con frecuencia de cambio elegible</span>
         </div>
       </div>
     </div>
@@ -167,79 +350,344 @@
       <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
     </div>
 
-    <!-- SHORTCUT CONFIG MODAL (STREAM DECK HUD) -->
+    <!-- SHORTCUT CONFIG MODAL (CLEAN 2-STEP WIZARD) -->
     <div class="shortcut-modal-overlay" id="shortcut-modal-overlay" style="display: none;">
       <div class="shortcut-modal">
         <div class="shortcut-modal-header">
-          <div class="modal-title-group">
-            <span class="modal-badge">STREAM DECK</span>
-            <h3 class="modal-title">Configurar Acceso Directo (1x1)</h3>
-          </div>
+          <h3 class="modal-title">Configurar Acceso Directo</h3>
           <button class="btn-close-modal" id="btn-close-shortcut-modal" title="Cerrar ventana">✕</button>
         </div>
 
-        <div class="shortcut-modal-body">
-          <!-- DESTINATION ROW -->
+        <!-- PASO 1: SÓLO Y EXCLUSIVAMENTE DESTINO + BOTÓN SIGUIENTE -->
+        <div class="shortcut-modal-body" id="shortcut-step-1">
           <div class="modal-field-group">
-            <label class="modal-label">Destino (Enlace Web o Archivo / Acceso Directo de tu PC):</label>
+            <label class="modal-label">Enlace web o acceso directo / archivo de tu PC:</label>
             <div class="modal-input-row">
-              <input type="text" id="shortcut-input-target" class="modal-input" placeholder="https://youtube.com o D:\Juegos\Juego.exe">
+              <input type="text" id="shortcut-input-target" class="modal-input" placeholder="https://ejemplo.com o C:\Ruta\App.lnk">
               <button type="button" id="btn-browse-target" class="btn-modal-action" title="Examinar archivo en tu PC">
                 📁 Examinar PC
               </button>
             </div>
-            <span class="modal-field-hint">Admite URLs web, ejecutables (.exe), accesos directos (.lnk), scripts o cualquier archivo.</span>
+            <span class="modal-field-hint">Pega una URL web o selecciona un archivo o acceso directo de tu equipo.</span>
           </div>
 
-          <!-- DISPLAY MODE -->
-          <div class="modal-field-group">
-            <label class="modal-label">Modo de Visualización:</label>
-            <div class="modal-toggle-group">
-              <label class="modal-radio-label">
-                <input type="radio" name="shortcut-mode" value="image" checked id="radio-mode-image">
-                <span>🖼️ Imagen Completa (Stream Deck)</span>
-              </label>
-              <label class="modal-radio-label">
-                <input type="radio" name="shortcut-mode" value="text" id="radio-mode-text">
-                <span>🔤 Texto Personalizado</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- IMAGE MODE SECTION -->
-          <div class="modal-sub-section" id="shortcut-section-image">
-            <label class="modal-label">Imagen / Icono (URL web o archivo de imagen local):</label>
-            <div class="modal-input-row">
-              <input type="text" id="shortcut-input-image" class="modal-input" placeholder="https://ejemplo.com/icono.png o C:\iconos\app.png">
-              <button type="button" id="btn-browse-image" class="btn-modal-action" title="Elegir archivo de imagen">
-                🖼️ Elegir Imagen
-              </button>
-            </div>
-            <span class="modal-field-hint">La imagen cubrirá todo el widget 1x1 estilo Stream Deck.</span>
-          </div>
-
-          <!-- TEXT / TITLE SECTION -->
-          <div class="modal-sub-section" id="shortcut-section-text">
-            <label class="modal-label">Texto o Título del Botón:</label>
-            <input type="text" id="shortcut-input-text" class="modal-input" placeholder="Ej: YOUTUBE, SPOTIFY, CALCULADORA">
-          </div>
-
-          <!-- LIVE PREVIEW BOX -->
-          <div class="modal-preview-section">
-            <label class="modal-label">Vista Previa:</label>
-            <div class="modal-preview-container">
-              <div class="shortcut-card preview-card" id="shortcut-live-preview">
-                <div class="shortcut-inner-content" id="shortcut-preview-content">
-                  <!-- Live preview content rendered dynamically -->
-                </div>
-              </div>
-            </div>
+          <div class="shortcut-modal-footer-single">
+            <button type="button" class="btn-modal-save" id="btn-shortcut-next">Siguiente →</button>
           </div>
         </div>
 
-        <div class="shortcut-modal-footer">
-          <button type="button" class="btn-modal-cancel" id="btn-cancel-shortcut-modal">Cancelar</button>
-          <button type="button" class="btn-modal-save" id="btn-save-shortcut-modal">Guardar Acceso Directo</button>
+        <!-- PASO 2: PERSONALIZACIÓN (IMAGEN O TEXTO + NOMBRE) -->
+        <div class="shortcut-modal-body" id="shortcut-step-2" style="display: none;">
+          
+          <!-- SUB-BLOQUE: SI ES ACCESO DIRECTO / ARCHIVO LOCAL -->
+          <div id="step2-local-options" class="step2-type-block">
+            <label class="modal-label">¿Cómo quieres mostrar el acceso directo?</label>
+            <div class="modal-toggle-group">
+              <label class="modal-radio-label">
+                <input type="radio" name="shortcut-mode-local" value="image" checked id="radio-local-auto-icon">
+                <span>🖼️ Usar imagen del acceso directo</span>
+              </label>
+              <label class="modal-radio-label">
+                <input type="radio" name="shortcut-mode-local" value="text" id="radio-local-text">
+                <span>🔤 Texto específico</span>
+              </label>
+            </div>
+
+            <!-- Vista previa del icono extraído automáticamente / cambiar imagen -->
+            <div id="local-icon-preview-box" class="shortcut-icon-display-row">
+              <div class="shortcut-extracted-preview" id="shortcut-extracted-preview-box">
+                <img id="shortcut-extracted-img" class="extracted-icon-thumb" src="" alt="Icono">
+              </div>
+              <div class="shortcut-icon-details">
+                <span class="shortcut-icon-status" id="shortcut-icon-status-text">Icono detectado automáticamente</span>
+                <button type="button" id="btn-change-local-image" class="btn-modal-link">Elegir otra imagen...</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-BLOQUE: SI ES ENLACE WEB -->
+          <div id="step2-web-options" class="step2-type-block" style="display: none;">
+            <label class="modal-label">¿Cómo quieres mostrar el enlace?</label>
+            <div class="modal-toggle-group">
+              <label class="modal-radio-label">
+                <input type="radio" name="shortcut-mode-web" value="image" checked id="radio-web-image">
+                <span>🖼️ Imagen</span>
+              </label>
+              <label class="modal-radio-label">
+                <input type="radio" name="shortcut-mode-web" value="text" id="radio-web-text">
+                <span>🔤 Texto</span>
+              </label>
+            </div>
+
+            <!-- Campo de imagen web o archivo local de imagen -->
+            <div id="web-image-input-block" class="modal-field-group" style="margin-top: 0.8rem;">
+              <label class="modal-label">Imagen o Icono (URL web o archivo de PC):</label>
+              <div class="modal-input-row">
+                <input type="text" id="shortcut-input-web-image" class="modal-input" placeholder="https://ejemplo.com/icono.png">
+                <button type="button" id="btn-browse-web-image" class="btn-modal-action">
+                  🖼️ Examinar PC
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CAMPO COMÚN: NOMBRE / TEXTO DEL ACCESO DIRECTO -->
+          <div class="modal-field-group" id="shortcut-name-field-group" style="margin-top: 1rem;">
+            <label class="modal-label">Texto o Nombre que quieras poner:</label>
+            <input type="text" id="shortcut-input-title" class="modal-input" placeholder="Ej: Roblox, YouTube, Calculadora">
+          </div>
+
+          <!-- FOOTER PASO 2: BOTÓN ATRÁS Y BOTÓN TERMINAR -->
+          <div class="shortcut-modal-footer">
+            <button type="button" class="btn-modal-cancel" id="btn-shortcut-back">← Atrás</button>
+            <button type="button" class="btn-modal-save" id="btn-shortcut-finish">Terminar</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PHOTO CONFIG MODAL (LOCAL FILE OR WEB URL) -->
+    <div class="shortcut-modal-overlay" id="photo-modal-overlay" style="display: none;">
+      <div class="shortcut-modal">
+        <div class="shortcut-modal-header">
+          <h3 class="modal-title">Configurar Marco de Foto</h3>
+          <button class="btn-close-modal" id="btn-close-photo-modal" title="Cerrar ventana">✕</button>
+        </div>
+        <div class="shortcut-modal-body">
+          <label class="modal-label">¿De dónde quieres obtener la foto?</label>
+          <div class="modal-toggle-group">
+            <label class="modal-radio-label">
+              <input type="radio" name="photo-source-type" value="local" checked id="radio-photo-local">
+              <span>📁 Desde mi PC</span>
+            </label>
+            <label class="modal-radio-label">
+              <input type="radio" name="photo-source-type" value="url" id="radio-photo-url">
+              <span>🌐 Enlace web (URL)</span>
+            </label>
+          </div>
+
+          <!-- LOCAL FILE OPTION -->
+          <div id="photo-local-block" class="modal-field-group" style="margin-top: 0.8rem;">
+            <label class="modal-label">Archivo de imagen en tu ordenador:</label>
+            <div class="modal-input-row">
+              <input type="text" id="photo-input-local-path" class="modal-input" placeholder="Ningún archivo seleccionado..." readonly>
+              <button type="button" id="btn-browse-photo-local" class="btn-modal-action">
+                📁 Examinar PC
+              </button>
+            </div>
+            <span class="modal-field-hint">Admite PNG, JPG, JPEG, WEBP, GIF, SVG o ICO.</span>
+          </div>
+
+          <!-- WEB URL OPTION -->
+          <div id="photo-url-block" class="modal-field-group" style="display: none; margin-top: 0.8rem;">
+            <label class="modal-label">Enlace URL directo a la imagen:</label>
+            <div class="modal-input-row">
+              <input type="text" id="photo-input-url" class="modal-input" placeholder="https://ejemplo.com/foto.jpg">
+              <button type="button" id="btn-preview-photo-url" class="btn-modal-action">
+                🔍 Vista previa
+              </button>
+            </div>
+            <span class="modal-field-hint">Pega el enlace directo a una imagen de internet.</span>
+          </div>
+
+          <!-- LIVE PREVIEW BOX -->
+          <div class="modal-field-group" style="margin-top: 0.9rem;">
+            <label class="modal-label">Vista previa:</label>
+            <div class="photo-modal-preview-box" id="photo-modal-preview-box">
+              <div class="photo-modal-preview-img" id="photo-modal-preview-img" style="display: none;"></div>
+              <div class="photo-modal-preview-placeholder" id="photo-modal-preview-placeholder">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <span>Selecciona o pega una imagen para previsualizar</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="shortcut-modal-footer" style="margin-top: 1rem;">
+            <button type="button" class="btn-modal-cancel" id="btn-cancel-photo-modal">Cancelar</button>
+            <button type="button" class="btn-modal-save" id="btn-save-photo-modal">Guardar Foto</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMER CONFIG MODAL (DAYS, HOURS, MINS, SECS) -->
+    <div class="shortcut-modal-overlay" id="timer-modal-overlay" style="display: none;">
+      <div class="shortcut-modal timer-modal-window">
+        <div class="shortcut-modal-header">
+          <h3 class="modal-title">Ajustar Temporizador</h3>
+          <button class="btn-close-modal" id="btn-close-timer-modal" title="Cerrar ventana">✕</button>
+        </div>
+        <div class="shortcut-modal-body">
+          <label class="modal-label">Establece el tiempo deseado:</label>
+          <div class="timer-spinner-grid">
+            <div class="timer-spin-col">
+              <span class="timer-spin-label">Días</span>
+              <input type="number" id="timer-input-days" class="timer-num-input" min="0" max="365" value="0">
+            </div>
+            <div class="timer-spin-sep">:</div>
+            <div class="timer-spin-col">
+              <span class="timer-spin-label">Horas</span>
+              <input type="number" id="timer-input-hours" class="timer-num-input" min="0" max="23" value="0">
+            </div>
+            <div class="timer-spin-sep">:</div>
+            <div class="timer-spin-col">
+              <span class="timer-spin-label">Minutos</span>
+              <input type="number" id="timer-input-mins" class="timer-num-input" min="0" max="59" value="5">
+            </div>
+            <div class="timer-spin-sep">:</div>
+            <div class="timer-spin-col">
+              <span class="timer-spin-label">Segundos</span>
+              <input type="number" id="timer-input-secs" class="timer-num-input" min="0" max="59" value="0">
+            </div>
+          </div>
+
+          <label class="modal-label" style="margin-top: 1rem;">Tiempos habituales:</label>
+          <div class="timer-presets-row">
+            <button type="button" class="btn-timer-preset" data-secs="60">1 min</button>
+            <button type="button" class="btn-timer-preset" data-secs="300">5 min</button>
+            <button type="button" class="btn-timer-preset" data-secs="600">10 min</button>
+            <button type="button" class="btn-timer-preset" data-secs="900">15 min</button>
+            <button type="button" class="btn-timer-preset" data-secs="1800">30 min</button>
+            <button type="button" class="btn-timer-preset" data-secs="3600">1 h</button>
+            <button type="button" class="btn-timer-preset" data-secs="7200">2 h</button>
+          </div>
+
+          <div class="shortcut-modal-footer" style="margin-top: 1.2rem;">
+            <button type="button" class="btn-modal-cancel" id="btn-cancel-timer-modal">Cancelar</button>
+            <button type="button" class="btn-modal-save" id="btn-save-timer-modal">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDESHOW ALBUM CONFIG MODAL -->
+    <div class="shortcut-modal-overlay" id="slideshow-modal-overlay" style="display: none;">
+      <div class="shortcut-modal slideshow-modal-window">
+        <div class="shortcut-modal-header">
+          <h3 class="modal-title">Configurar Álbum del Slideshow</h3>
+          <button class="btn-close-modal" id="btn-close-slideshow-modal" title="Cerrar ventana">✕</button>
+        </div>
+        <div class="shortcut-modal-body">
+          <label class="modal-label">¿Cómo deseas añadir fotos al álbum?</label>
+          <div class="modal-toggle-group">
+            <label class="modal-radio-label">
+              <input type="radio" name="slideshow-source-type" value="local" checked id="radio-slideshow-local">
+              <span>📁 Desde mi PC</span>
+            </label>
+            <label class="modal-radio-label">
+              <input type="radio" name="slideshow-source-type" value="url" id="radio-slideshow-url">
+              <span>🌐 Enlace web (URL)</span>
+            </label>
+          </div>
+
+          <!-- LOCAL FILES OPTION -->
+          <div id="slideshow-local-block" class="modal-field-group" style="margin-top: 0.8rem;">
+            <div class="slideshow-add-row">
+              <button type="button" id="btn-browse-slideshow-local" class="btn-modal-action btn-album-action">
+                📁 Añadir fotos del PC (selección múltiple)
+              </button>
+            </div>
+            <span class="modal-field-hint">Puedes seleccionar una o varias imágenes de una sola vez.</span>
+          </div>
+
+          <!-- WEB URL OPTION -->
+          <div id="slideshow-url-block" class="modal-field-group" style="display: none; margin-top: 0.8rem;">
+            <div class="modal-input-row">
+              <input type="text" id="slideshow-input-url" class="modal-input" placeholder="https://ejemplo.com/foto.jpg">
+              <button type="button" id="btn-add-slideshow-url" class="btn-modal-action">
+                + Añadir URL
+              </button>
+            </div>
+            <span class="modal-field-hint">Pega el enlace directo a una foto de internet y pulsa Añadir.</span>
+          </div>
+
+          <!-- FRECUENCIA DE ROTACIÓN -->
+          <div class="modal-field-group" style="margin-top: 0.8rem;">
+            <label class="modal-label">Frecuencia de rotación:</label>
+            <select id="slideshow-modal-interval" class="modal-input modal-select">
+              <option value="5">Cada 5 segundos</option>
+              <option value="10">Cada 10 segundos</option>
+              <option value="30">Cada 30 segundos</option>
+              <option value="60">Cada 1 minuto</option>
+              <option value="300">Cada 5 minutos</option>
+            </select>
+          </div>
+
+          <!-- FOTOS DEL ÁLBUM -->
+          <div class="modal-field-group" style="margin-top: 0.9rem;">
+            <div class="slideshow-album-header">
+              <label class="modal-label" style="margin-bottom: 0;">Fotos en el álbum:</label>
+              <span class="slideshow-album-counter" id="slideshow-modal-count">0 fotos</span>
+            </div>
+            <div class="slideshow-thumbnails-grid" id="slideshow-thumbnails-grid">
+              <!-- Dynamically populated thumbnail items -->
+            </div>
+          </div>
+
+          <div class="shortcut-modal-footer" style="margin-top: 1.2rem;">
+            <button type="button" class="btn-modal-cancel" id="btn-cancel-slideshow-modal">Cancelar</button>
+            <button type="button" class="btn-modal-save" id="btn-save-slideshow-modal">Guardar Álbum</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW DESIGN MODAL (MODERNO E INTEGRADO) -->
+    <div class="shortcut-modal-overlay" id="new-design-modal-overlay" style="display: none;">
+      <div class="shortcut-modal">
+        <div class="shortcut-modal-header">
+          <h3 class="modal-title">Crear Nuevo Diseño</h3>
+          <button class="btn-close-modal" id="btn-close-new-design-modal" title="Cerrar ventana">✕</button>
+        </div>
+        <div class="shortcut-modal-body">
+          <div class="modal-field-group">
+            <label class="modal-label">Nombre del diseño:</label>
+            <input type="text" id="input-new-design-name" class="modal-input" placeholder="Ej: Gaming, Trabajo, Streaming, Minimalista..." autocomplete="off">
+          </div>
+
+          <div class="modal-field-group" style="margin-top: 0.8rem;">
+            <label class="modal-label">Formato de cuadrícula:</label>
+            <select id="select-new-design-grid" class="settings-select">
+              <option value="8x5">8 x 5 (Grande)</option>
+              <option value="6x4">6 x 4 (Pequeño)</option>
+            </select>
+          </div>
+
+          <div class="modal-field-group" style="margin-top: 0.8rem;">
+            <label class="modal-label">Contenido inicial:</label>
+            <div class="modal-toggle-group">
+              <label class="modal-radio-label">
+                <input type="radio" name="new-design-mode" value="clone" checked id="radio-design-clone">
+                <span>📋 Duplicar diseño actual</span>
+              </label>
+              <label class="modal-radio-label">
+                <input type="radio" name="new-design-mode" value="empty" id="radio-design-empty">
+                <span>✨ Cuadrícula vacía</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="shortcut-modal-footer" style="margin-top: 1.2rem;">
+            <button type="button" class="btn-modal-cancel" id="btn-cancel-new-design-modal">Cancelar</button>
+            <button type="button" class="btn-modal-save" id="btn-confirm-new-design">Crear Diseño</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOM CONFIRM MODAL (NO ALERT/CONFIRM FEOS) -->
+    <div class="shortcut-modal-overlay" id="confirm-modal-overlay" style="display: none;">
+      <div class="shortcut-modal confirm-modal-box">
+        <div class="shortcut-modal-header">
+          <h3 class="modal-title" id="confirm-modal-title">Confirmar acción</h3>
+        </div>
+        <div class="shortcut-modal-body">
+          <p id="confirm-modal-message" class="confirm-modal-msg">¿Estás seguro de que deseas continuar?</p>
+          <div class="shortcut-modal-footer" style="margin-top: 1rem;">
+            <button type="button" class="btn-modal-cancel" id="btn-confirm-cancel">Cancelar</button>
+            <button type="button" class="btn-modal-save btn-modal-danger" id="btn-confirm-ok">Aceptar</button>
+          </div>
         </div>
       </div>
     </div>

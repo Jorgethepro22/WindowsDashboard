@@ -1,5 +1,8 @@
 import os
 import sys
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pycaw")
+warnings.filterwarnings("ignore", message=".*COMError attempting to get property.*")
 import webview
 
 from core.config_manager import ConfigManager, get_base_dir, get_resource_path
@@ -8,6 +11,7 @@ from core.system_stats import SystemStats
 from core.audio_controller import AudioController
 from core.media_session import MediaSessionManager
 from core.weather_service import WeatherService
+from core.autostart import is_autostart_enabled, set_autostart
 
 class DashboardApi:
     def __init__(self, config_mgr, monitor_mgr, system_stats, audio_ctrl, media_session, weather_svc):
@@ -30,6 +34,9 @@ class DashboardApi:
             "weather": self._weather_svc.get_weather()
         }
 
+    def get_audio_levels(self):
+        return self._audio_ctrl.get_audio_levels()
+
     def set_volume(self, percent):
         return self._audio_ctrl.set_output_volume(percent)
 
@@ -50,6 +57,44 @@ class DashboardApi:
 
     def toggle_input_mute(self):
         return self._audio_ctrl.toggle_input_mute()
+
+    def get_media_info(self):
+        return self._media_session.get_current_media()
+
+    def get_weather(self):
+        return self._weather_svc.get_weather()
+
+    def search_cities(self, query):
+        return self._weather_svc.search_cities(query)
+
+    def get_app_settings(self):
+        settings = self._weather_svc.get_settings() or {}
+        try:
+            settings["start_with_windows"] = is_autostart_enabled()
+        except Exception as e:
+            print(f"[DashboardApi] Error checking autostart: {e}")
+            settings["start_with_windows"] = False
+        return settings
+
+    def save_app_settings(self, settings):
+        if settings and "start_with_windows" in settings:
+            try:
+                set_autostart(bool(settings["start_with_windows"]))
+            except Exception as e:
+                print(f"[DashboardApi] Error setting autostart: {e}")
+        res = self._weather_svc.save_settings(settings)
+        if isinstance(res, dict) and "settings" in res:
+            try:
+                res["settings"]["start_with_windows"] = is_autostart_enabled()
+            except Exception:
+                pass
+        return res
+
+    def get_start_with_windows(self):
+        return is_autostart_enabled()
+
+    def set_start_with_windows(self, enabled):
+        return set_autostart(bool(enabled))
 
     def media_play_pause(self):
         return self._media_session.play_pause()
@@ -180,6 +225,330 @@ class DashboardApi:
         except Exception as e:
             print(f"[DashboardApi] Error reading image '{file_path}': {e}")
             return None
+
+    def resolve_shortcut_target(self, target):
+        if not target or not target.strip():
+            return {"is_local": False, "icon": None, "default_name": ""}
+        t = target.strip()
+        if (t.startswith('"') and t.endswith('"')) or (t.startswith("'") and t.endswith("'")):
+            t = t[1:-1].strip()
+
+        if os.path.exists(t):
+            icon_uri, name = extract_file_icon_base64(t)
+            return {
+                "is_local": True,
+                "icon": icon_uri,
+                "default_name": name,
+                "target": t
+            }
+
+        is_web = t.startswith("http://") or t.startswith("https://") or t.startswith("www.") or ("." in t and not os.path.isabs(t))
+        name = ""
+        if is_web:
+            clean = t.replace("https://", "").replace("http://", "").replace("www.", "")
+            domain = clean.split("/")[0].split("?")[0]
+            name = domain.split(".")[0].capitalize() if domain else ""
+        return {
+            "is_local": False,
+            "icon": None,
+            "default_name": name,
+            "target": t
+        }
+
+    def select_multiple_images_dialog(self):
+        if not self._window:
+            return []
+        try:
+            file_types = (
+                "Archivos de Imagen (*.png;*.jpg;*.jpeg;*.webp;*.ico;*.svg;*.gif)",
+                "Todos los archivos (*.*)"
+            )
+            result = self._window.create_file_dialog(
+                webview.FileDialog.OPEN,
+                allow_multiple=True,
+                file_types=file_types
+            )
+            if result:
+                return list(result)
+        except Exception as e:
+            print(f"[DashboardApi] Error in select_multiple_images_dialog: {e}")
+        return []
+
+    def get_notes(self):
+        return self._config_mgr.get("notes", [])
+
+    def save_notes(self, notes):
+        self._config_mgr.set("notes", notes)
+        return True
+
+    def get_slideshow_config(self, widget_id):
+        key = f"slideshow_{widget_id}"
+        return self._config_mgr.get(key, {"images": [], "interval": 10})
+
+    def save_slideshow_config(self, widget_id, config):
+        key = f"slideshow_{widget_id}"
+        self._config_mgr.set(key, config)
+        return True
+
+    def beep_timer(self):
+        try:
+            import winsound
+            winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+            return True
+        except Exception as e:
+            print(f"[DashboardApi] Error in beep_timer: {e}")
+            return False
+
+    def get_exchange_rates(self):
+        import time
+        import requests
+        cache = self._config_mgr.get("_exchange_cache", {})
+        now = time.time()
+        if cache and (now - cache.get("timestamp", 0) < 21600) and "rates" in cache:
+            return cache["rates"]
+        try:
+            resp = requests.get("https://open.er-api.com/v6/latest/EUR", timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                if "rates" in data:
+                    self._config_mgr.set("_exchange_cache", {"timestamp": now, "rates": data["rates"]})
+                    return data["rates"]
+        except Exception as e:
+            print(f"[DashboardApi] Error fetching exchange rates: {e}")
+        if cache and "rates" in cache:
+            return cache["rates"]
+        return {
+            "EUR": 1.0,
+            "USD": 1.09,
+            "GBP": 0.86,
+            "JPY": 162.5,
+            "CAD": 1.48,
+            "CHF": 0.96,
+            "CNY": 7.85,
+            "AUD": 1.65,
+            "MXN": 18.5,
+            "BRL": 5.4,
+            "INR": 90.2
+        }
+
+    def translate_text(self, text, source_lang="es", target_lang="en"):
+        import urllib.request
+        import urllib.parse
+        import json
+        import html
+        if not text or not text.strip():
+            return {"translatedText": ""}
+        
+        # 1. Google Translate (alta precisión y naturalidad neuronal)
+        try:
+            encoded_text = urllib.parse.quote(text.strip())
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl={source_lang}&tl={target_lang}&dt=t&q={encoded_text}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+                    translated = "".join(seg[0] for seg in data[0] if seg and len(seg) > 0 and seg[0])
+                    if translated:
+                        return {"translatedText": translated}
+        except Exception as e:
+            print(f"[DashboardApi] Google Translate error: {e}")
+
+        # 2. Respaldo MyMemory si falla la conexión directa
+        try:
+            import requests
+            pair = f"{source_lang}|{target_lang}"
+            url = f"https://api.mymemory.translated.net/get?q={encoded_text}&langpair={pair}"
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                translated = data.get("responseData", {}).get("translatedText", "")
+                if translated:
+                    return {"translatedText": html.unescape(translated)}
+        except Exception as e:
+            print(f"[DashboardApi] Fallback translation error: {e}")
+
+        return {"error": "No se pudo traducir en este momento"}
+
+
+def extract_file_icon_base64(file_path):
+
+    if not file_path or not os.path.exists(file_path):
+        return None, ""
+
+    resolved_path = file_path
+    name = os.path.splitext(os.path.basename(file_path))[0]
+
+    icon_source = file_path
+    icon_index = 0
+    if file_path.lower().endswith(".lnk"):
+        try:
+            import win32com.client
+            shell = win32com.client.Dispatch("WScript.Shell")
+            sc = shell.CreateShortcut(file_path)
+
+            target_path = sc.TargetPath.strip() if sc.TargetPath else ""
+            if target_path and os.path.exists(target_path):
+                resolved_path = target_path
+
+            found_icon = False
+            icon_loc = sc.IconLocation.strip() if sc.IconLocation else ""
+            if icon_loc:
+                parts = [p.strip() for p in icon_loc.split(",") if p.strip()]
+                if parts and os.path.exists(parts[0]):
+                    icon_source = parts[0]
+                    found_icon = True
+                    if len(parts) > 1:
+                        try:
+                            icon_index = int(parts[1])
+                        except Exception:
+                            icon_index = 0
+
+            if not found_icon:
+                icon_source = resolved_path
+        except Exception as e:
+            print(f"[DashboardApi] Error reading shortcut: {e}")
+            icon_source = resolved_path
+
+    import io
+    import base64
+    import ctypes
+    from ctypes import wintypes
+    import win32gui
+    import win32ui
+    from PIL import Image
+
+    user32 = ctypes.windll.user32
+    hicon = wintypes.HICON()
+    icon_id = wintypes.UINT()
+
+    # Prioritize 256x256 down to 32x32 from icon_source, then resolved_path
+    sources_to_try = [icon_source]
+    if resolved_path not in sources_to_try and os.path.exists(resolved_path):
+        sources_to_try.append(resolved_path)
+
+    extracted_hicon = None
+
+    for src in sources_to_try:
+        if not os.path.exists(src):
+            continue
+        for size in (256, 128, 64, 48, 32):
+            try:
+                res = user32.PrivateExtractIconsW(
+                    src,
+                    icon_index,
+                    size,
+                    size,
+                    ctypes.byref(hicon),
+                    ctypes.byref(icon_id),
+                    1,
+                    0
+                )
+                if res > 0 and hicon.value:
+                    extracted_hicon = hicon.value
+                    break
+            except Exception:
+                pass
+        if extracted_hicon:
+            break
+
+    # If still not found, try SHGetImageList JUMBO (256x256) on target (clean, no shortcut arrow)
+    if not extracted_hicon:
+        try:
+            class GUID(ctypes.Structure):
+                _fields_ = [
+                    ("Data1", wintypes.DWORD),
+                    ("Data2", wintypes.WORD),
+                    ("Data3", wintypes.WORD),
+                    ("Data4", wintypes.BYTE * 8)
+                ]
+
+            IID_IImageList = GUID(
+                0x46EB5926,
+                0x582E,
+                0x4017,
+                (wintypes.BYTE * 8)(0x9F, 0xDF, 0xE8, 0x99, 0x8D, 0xAA, 0x09, 0x50)
+            )
+
+            class SHFILEINFO(ctypes.Structure):
+                _fields_ = [
+                    ('hIcon', wintypes.HICON),
+                    ('iIcon', ctypes.c_int),
+                    ('dwAttributes', wintypes.DWORD),
+                    ('szDisplayName', wintypes.WCHAR * 260),
+                    ('szTypeName', wintypes.WCHAR * 80)
+                ]
+
+            target_for_shell = resolved_path if os.path.exists(resolved_path) else file_path
+            sfi = SHFILEINFO()
+            SHGFI_SYSICONINDEX = 0x00004000
+            ret = ctypes.windll.shell32.SHGetFileInfoW(
+                target_for_shell,
+                0,
+                ctypes.byref(sfi),
+                ctypes.sizeof(sfi),
+                SHGFI_SYSICONINDEX
+            )
+            if ret:
+                image_list = ctypes.c_void_p()
+                hr = ctypes.windll.shell32.SHGetImageList(
+                    4,  # SHIL_JUMBO (256x256)
+                    ctypes.byref(IID_IImageList),
+                    ctypes.byref(image_list)
+                )
+                if hr == 0 and image_list:
+                    h_jumbo = ctypes.windll.comctl32.ImageList_GetIcon(image_list, sfi.iIcon, 0)
+                    if h_jumbo:
+                        extracted_hicon = h_jumbo
+        except Exception as e:
+            print(f"[DashboardApi] Jumbo icon fallback error: {e}")
+
+    if not extracted_hicon:
+        return None, name
+
+    try:
+        icon_info = win32gui.GetIconInfo(extracted_hicon)
+        hbm_color = icon_info[4]
+        hbm_mask = icon_info[3]
+
+        hdc = win32ui.CreateDCFromHandle(win32gui.GetDC(0))
+        hbmp = win32ui.CreateBitmap()
+
+        bmp_info = win32gui.GetObject(hbm_color if hbm_color else hbm_mask)
+        width = bmp_info.bmWidth
+        height = bmp_info.bmHeight
+        if not hbm_color:
+            height = height // 2
+
+        mem_dc = hdc.CreateCompatibleDC()
+        hbmp.CreateCompatibleBitmap(hdc, width, height)
+        prev_bmp = mem_dc.SelectObject(hbmp)
+
+        win32gui.DrawIconEx(mem_dc.GetSafeHdc(), 0, 0, extracted_hicon, width, height, 0, None, 3)
+
+        bmp_str = hbmp.GetBitmapBits(True)
+        img = Image.frombuffer('RGBA', (width, height), bmp_str, 'raw', 'BGRA', 0, 1)
+
+        mem_dc.SelectObject(prev_bmp)
+        win32gui.DeleteObject(hbmp.GetHandle())
+        mem_dc.DeleteDC()
+        hdc.DeleteDC()
+        win32gui.DestroyIcon(extracted_hicon)
+        if hbm_color:
+            win32gui.DeleteObject(hbm_color)
+        if hbm_mask:
+            win32gui.DeleteObject(hbm_mask)
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{b64}", name
+    except Exception as e:
+        print(f"[DashboardApi] Error converting icon: {e}")
+        try:
+            win32gui.DestroyIcon(extracted_hicon)
+        except Exception:
+            pass
+        return None, name
 
 
 def main():
