@@ -32,17 +32,44 @@ def _read_afterburner_sensors():
     return data
 
 
+try:
+    import win32pdh
+    _PDH_AVAILABLE = True
+except Exception:
+    _PDH_AVAILABLE = False
+
+
 class DiskMonitor:
     def __init__(self):
         self.mapping = self._init_mapping()
         self.last_io = psutil.disk_io_counters(perdisk=True)
         self.last_time = time.time()
+        self.pdh_query = None
+        self.counter_pct = None
+        self.counter_rd = None
+        self.counter_wr = None
+        self._init_pdh()
+
+    def _init_pdh(self):
+        if not _PDH_AVAILABLE:
+            return
+        try:
+            self.pdh_query = win32pdh.OpenQuery()
+            self.counter_pct = win32pdh.AddEnglishCounter(self.pdh_query, r"\PhysicalDisk(*)\% Disk Time")
+            self.counter_rd = win32pdh.AddEnglishCounter(self.pdh_query, r"\PhysicalDisk(*)\Disk Read Bytes/sec")
+            self.counter_wr = win32pdh.AddEnglishCounter(self.pdh_query, r"\PhysicalDisk(*)\Disk Write Bytes/sec")
+            win32pdh.CollectQueryData(self.pdh_query)
+        except Exception:
+            self.pdh_query = None
 
     def _init_mapping(self):
         mapping = {
-            "PhysicalDrive1": {"letter": "C:", "label": "SSD C:"},
-            "PhysicalDrive0": {"letter": "D:", "label": "HDD D:"},
-            "PhysicalDrive2": {"letter": "E:", "label": "NVMe E:"},
+            "C:": {"id": "PhysicalDrive1", "letter": "C:", "label": "SSD C:", "index": 1},
+            "D:": {"id": "PhysicalDrive0", "letter": "D:", "label": "HDD D:", "index": 0},
+            "E:": {"id": "PhysicalDrive2", "letter": "E:", "label": "NVMe E:", "index": 2},
+            "PhysicalDrive1": {"id": "PhysicalDrive1", "letter": "C:", "label": "SSD C:", "index": 1},
+            "PhysicalDrive0": {"id": "PhysicalDrive0", "letter": "D:", "label": "HDD D:", "index": 0},
+            "PhysicalDrive2": {"id": "PhysicalDrive2", "letter": "E:", "label": "NVMe E:", "index": 2},
         }
         try:
             import wmi
@@ -51,18 +78,76 @@ class DiskMonitor:
                 d_id = disk.DeviceID.split("\\")[-1]
                 model = disk.Model or "Disco"
                 tag = "NVMe" if "NVMe" in model or "PLUS" in model else ("SSD" if "SSD" in model else "HDD")
+                idx = disk.Index
                 for part in disk.associators("Win32_DiskDriveToDiskPartition"):
                     for log in part.associators("Win32_LogicalDiskToPartition"):
-                        mapping[d_id] = {
-                            "letter": log.DeviceID,
-                            "label": f"{tag} {log.DeviceID}",
-                            "model": model
+                        info = {
+                            "id": d_id,
+                            "letter": log.DeviceID.upper(),
+                            "label": f"{tag} {log.DeviceID.upper()}",
+                            "model": model,
+                            "index": idx
                         }
+                        mapping[log.DeviceID.upper()] = info
+                        mapping[d_id] = info
+                        mapping[str(idx)] = info
         except Exception:
             pass
         return mapping
 
     def get_telemetry(self):
+        # 1. High-precision Task Manager counter using Windows PDH (% Disk Time)
+        if self.pdh_query:
+            try:
+                win32pdh.CollectQueryData(self.pdh_query)
+                pcts = win32pdh.GetFormattedCounterArray(self.counter_pct, win32pdh.PDH_FMT_DOUBLE)
+                rds = win32pdh.GetFormattedCounterArray(self.counter_rd, win32pdh.PDH_FMT_DOUBLE)
+                wrs = win32pdh.GetFormattedCounterArray(self.counter_wr, win32pdh.PDH_FMT_DOUBLE)
+
+                disks_data = []
+                for inst, pct_val in pcts.items():
+                    if inst.startswith("_"):
+                        continue
+
+                    found_letter = None
+                    parts = inst.split()
+                    for p in parts:
+                        if len(p) == 2 and p[1] == ':':
+                            found_letter = p.upper()
+                            break
+
+                    idx_str = parts[0] if parts and parts[0].isdigit() else None
+                    info = None
+                    if found_letter and found_letter in self.mapping:
+                        info = self.mapping[found_letter]
+                    elif idx_str and idx_str in self.mapping:
+                        info = self.mapping[idx_str]
+
+                    disk_id = info["id"] if info else inst
+                    label = info["label"] if info else f"DISCO {inst}"
+                    letter = info["letter"] if info else (found_letter or inst)
+
+                    r_speed = rds.get(inst, 0.0)
+                    w_speed = wrs.get(inst, 0.0)
+                    active_pct = min(100.0, max(0.0, pct_val))
+
+                    disks_data.append({
+                        "id": disk_id,
+                        "letter": letter,
+                        "label": label,
+                        "usage_percent": round(active_pct, 1),
+                        "read_speed": self._format_speed(r_speed),
+                        "write_speed": self._format_speed(w_speed),
+                        "read_raw": r_speed,
+                        "write_raw": w_speed
+                    })
+
+                disks_data.sort(key=lambda d: d.get("letter", ""))
+                return disks_data
+            except Exception:
+                pass
+
+        # 2. Fallback to psutil if PDH is unavailable
         now = time.time()
         dt = max(0.1, now - self.last_time)
         curr_io = psutil.disk_io_counters(perdisk=True)
@@ -83,10 +168,10 @@ class DiskMonitor:
             io_time_ms = (c.read_time - p.read_time) + (c.write_time - p.write_time)
             active_pct = min(100.0, max(0.0, (io_time_ms / (dt * 1000.0)) * 100.0))
             
-            info = self.mapping.get(k, {"letter": k, "label": k, "model": ""})
+            info = self.mapping.get(k, {"letter": k, "label": k, "model": "", "id": k})
             
             disks_data.append({
-                "id": k,
+                "id": info.get("id", k),
                 "letter": info.get("letter", k),
                 "label": info.get("label", k),
                 "usage_percent": round(active_pct, 1),

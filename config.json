@@ -3,6 +3,136 @@
   "fullscreen": true,
   "theme": "dark_crimson",
   "refresh_interval_ms": 1000,
+  "active_design": "Predeterminado",
+  "designs": {
+    "Predeterminado": {
+      "grid_size": "6x4",
+      "layout": [
+        {
+          "id": "w_cpu",
+          "type": "cpu",
+          "x": 1,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_gpu",
+          "type": "gpu",
+          "x": 3,
+          "y": 2,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_disks",
+          "type": "disks",
+          "x": 5,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_audio",
+          "type": "audio",
+          "x": 5,
+          "y": 3,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_media",
+          "type": "media",
+          "x": 1,
+          "y": 4,
+          "w": 3,
+          "h": 1
+        },
+        {
+          "id": "w_shortcut_1790434567715",
+          "type": "shortcut",
+          "x": 4,
+          "y": 4,
+          "w": 1,
+          "h": 1
+        }
+      ]
+    },
+    "Hardware Focus": {
+      "grid_size": "8x5",
+      "layout": [
+        {
+          "id": "w_cpu",
+          "type": "cpu",
+          "x": 1,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_gpu",
+          "type": "gpu",
+          "x": 3,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_disks",
+          "type": "disks",
+          "x": 5,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_audio",
+          "type": "audio",
+          "x": 7,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_summary",
+          "type": "summary",
+          "x": 1,
+          "y": 3,
+          "w": 2,
+          "h": 2
+        }
+      ]
+    },
+    "Compacto / Gaming": {
+      "grid_size": "6x4",
+      "layout": [
+        {
+          "id": "w_summary",
+          "type": "summary",
+          "x": 1,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_audio",
+          "type": "audio",
+          "x": 3,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "id": "w_media",
+          "type": "media",
+          "x": 1,
+          "y": 3,
+          "w": 3,
+          "h": 1
+        }
+      ]
+    }
+  },
   "weather": {
     "city": "Sevilla",
     "latitude": 37.3891,

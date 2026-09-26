@@ -31,10 +31,25 @@ class DashboardApi:
         }
 
     def set_volume(self, percent):
-        return self._audio_ctrl.set_volume(percent)
+        return self._audio_ctrl.set_output_volume(percent)
+
+    def set_output_volume(self, percent):
+        return self._audio_ctrl.set_output_volume(percent)
+
+    def set_input_volume(self, percent):
+        return self._audio_ctrl.set_input_volume(percent)
+
+    def set_default_audio_device(self, device_id):
+        return self._audio_ctrl.set_default_device(device_id)
 
     def toggle_mute(self):
-        return self._audio_ctrl.toggle_mute()
+        return self._audio_ctrl.toggle_output_mute()
+
+    def toggle_output_mute(self):
+        return self._audio_ctrl.toggle_output_mute()
+
+    def toggle_input_mute(self):
+        return self._audio_ctrl.toggle_input_mute()
 
     def media_play_pause(self):
         return self._media_session.play_pause()
@@ -82,6 +97,89 @@ class DashboardApi:
             self._config_mgr.set("fullscreen", self._window.fullscreen)
             return self._window.fullscreen
         return False
+
+    def get_designs(self):
+        return self._config_mgr.get_designs()
+
+    def save_design(self, name, layout_items, grid_size=None):
+        return self._config_mgr.save_design(name, layout_items, grid_size)
+
+    def rename_design(self, old_name, new_name):
+        return self._config_mgr.rename_design(old_name, new_name)
+
+    def delete_design(self, name):
+        return self._config_mgr.delete_design(name)
+
+    def set_active_design(self, name):
+        return self._config_mgr.set_active_design(name)
+
+    def launch_shortcut(self, target):
+        if not target or not target.strip():
+            return False
+        target = target.strip()
+        # Prepend https:// if it looks like a web domain without protocol
+        if target.startswith("www.") or (("." in target and "\\" not in target and "/" not in target and not target.endswith((".exe", ".lnk", ".bat", ".cmd", ".py", ".txt", ".pdf", ".docx", ".xlsx", ".msi"))) and ":" not in target):
+            target = "https://" + target
+        try:
+            os.startfile(target)
+            return True
+        except Exception as e:
+            print(f"[DashboardApi] Error launching shortcut '{target}': {e}")
+            return False
+
+    def select_file_dialog(self):
+        if not self._window:
+            return None
+        try:
+            file_types = (
+                "Ejecutables y Accesos Directos (*.exe;*.lnk;*.bat;*.cmd;*.url)",
+                "Todos los archivos (*.*)"
+            )
+            result = self._window.create_file_dialog(
+                webview.FileDialog.OPEN,
+                allow_multiple=False,
+                file_types=file_types
+            )
+            if result and len(result) > 0:
+                return result[0]
+        except Exception as e:
+            print(f"[DashboardApi] Error in select_file_dialog: {e}")
+        return None
+
+    def select_image_dialog(self):
+        if not self._window:
+            return None
+        try:
+            file_types = (
+                "Archivos de Imagen (*.png;*.jpg;*.jpeg;*.webp;*.ico;*.svg;*.gif)",
+                "Todos los archivos (*.*)"
+            )
+            result = self._window.create_file_dialog(
+                webview.FileDialog.OPEN,
+                allow_multiple=False,
+                file_types=file_types
+            )
+            if result and len(result) > 0:
+                return result[0]
+        except Exception as e:
+            print(f"[DashboardApi] Error in select_image_dialog: {e}")
+        return None
+
+    def read_image_data(self, file_path):
+        import base64
+        import mimetypes
+        if not file_path or not os.path.exists(file_path):
+            return None
+        try:
+            mime, _ = mimetypes.guess_type(file_path)
+            if not mime:
+                mime = "image/png"
+            with open(file_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode("utf-8")
+            return f"data:{mime};base64,{encoded}"
+        except Exception as e:
+            print(f"[DashboardApi] Error reading image '{file_path}': {e}")
+            return None
 
 
 def main():
