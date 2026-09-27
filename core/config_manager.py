@@ -61,8 +61,25 @@ def get_resource_path(relative_path):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(get_base_dir(), relative_path)
 
-def get_config_path():
-    return os.path.join(get_base_dir(), "config.json")
+def get_appdata_dir() -> str:
+    """Returns the persistent directory for WindowsDashboard in %APPDATA%."""
+    appdata = os.environ.get("APPDATA")
+    if not appdata:
+        appdata = os.path.expanduser("~")
+    path = os.path.join(appdata, "WindowsDashboard")
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception:
+        pass
+    return path
+
+def get_config_path() -> str:
+    """
+    Returns the canonical configuration file path in %APPDATA%/WindowsDashboard/config.json.
+    Ensures that both development mode (python main.py) and compiled mode (WindowsDashboard.exe)
+    share the exact same configuration, and that recompiling or rebooting never loses user designs.
+    """
+    return os.path.join(get_appdata_dir(), "config.json")
 
 class ConfigManager:
     def __init__(self):
@@ -70,7 +87,7 @@ class ConfigManager:
         self.config = self.load_config()
 
     def load_config(self):
-        # 1. Try reading from working directory next to executable/script
+        # 1. Primary location: %APPDATA%/WindowsDashboard/config.json
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r", encoding="utf-8") as f:
@@ -81,30 +98,58 @@ class ConfigManager:
                         config["designs"] = DEFAULT_DESIGNS.copy()
                     return config
             except Exception as e:
-                print(f"[ConfigManager] Error reading config: {e}. Using defaults.")
+                print(f"[ConfigManager] Error reading config from AppData: {e}. Using defaults.")
 
-        # 2. Check bundled resource config if packaged
-        bundled_config = get_resource_path("config.json")
-        if os.path.exists(bundled_config):
-            try:
-                with open(bundled_config, "r", encoding="utf-8") as f:
-                    loaded = json.load(f)
-                    config = DEFAULT_CONFIG.copy()
-                    config.update(loaded)
-                    if "designs" not in config or not config["designs"]:
-                        config["designs"] = DEFAULT_DESIGNS.copy()
-                    self.config = config
-                    self.save_config()
-                    return config
-            except Exception:
-                pass
+        # 2. Migration candidates: Check project root, dist directory, or bundled resources
+        candidate_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json"),
+            os.path.join(get_base_dir(), "config.json"),
+            get_resource_path("config.json")
+        ]
+
+        best_config = None
+        for path in candidate_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        loaded = json.load(f)
+                        designs = loaded.get("designs", {})
+                        if "Gaming" in designs or "Productividad" in designs:
+                            best_config = loaded
+                            break
+                        elif best_config is None and designs:
+                            best_config = loaded
+                except Exception:
+                    pass
+
+        if best_config:
+            config = DEFAULT_CONFIG.copy()
+            config.update(best_config)
+            if "designs" not in config or not config["designs"]:
+                config["designs"] = DEFAULT_DESIGNS.copy()
+            self.config = config
+            self.save_config()
+            return config
 
         return DEFAULT_CONFIG.copy()
 
     def save_config(self):
         try:
+            # 1. Save to primary canonical location in %APPDATA%
+            os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(self.config, f, indent=2, ensure_ascii=False)
+
+            # 2. Mirror to workspace root if running from source (for dev convenience)
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                workspace_config = os.path.join(base_dir, "config.json")
+                if os.path.exists(base_dir) and not getattr(sys, 'frozen', False):
+                    with open(workspace_config, "w", encoding="utf-8") as f:
+                        json.dump(self.config, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+
             return True
         except Exception as e:
             print(f"[ConfigManager] Error saving config: {e}")
