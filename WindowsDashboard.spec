@@ -1,13 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+from PyInstaller.utils.hooks import collect_data_files
+
+whisper_datas = collect_data_files('faster_whisper')
+llama_datas = collect_data_files('llama_cpp')
+
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('ui', 'ui'), ('config.json', '.')],
-    hiddenimports=['win32pdh', 'PIL', 'win32gui', 'win32ui', 'win32com', 'comtypes', 'win32api', 'win32con'],
-    hookspath=[],
+    datas=[('ui', 'ui'), ('config.json', '.')] + whisper_datas + llama_datas,
+    hiddenimports=[
+        'win32pdh', 'PIL', 'win32gui', 'win32ui', 'win32com', 'comtypes',
+        'win32api', 'win32con', 'sounddevice', 'faster_whisper', 'ctranslate2', 'numpy',
+        'edge_tts', 'llama_cpp'
+    ],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
@@ -40,5 +48,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='WindowsDashboard',
+    name='WindowsDashboardApp',
 )

@@ -79,6 +79,8 @@ async function initApp() {
   setupSlideshowModal();
   setupNewDesignModal();
   setupConfirmModal();
+  setupAssistantSettingsModal();
+  loadAssistantSettings();
   startAudioMeterLoop(apiBridge);
   startMediaLoop(apiBridge);
   // Initial Poll & Loop
@@ -1458,6 +1460,10 @@ function applyCurrentDataToWidgets() {
     } else if (w.type === "audio_meter") {
       const levels = (lastDashboardData.audio && lastDashboardData.audio.levels) ? lastDashboardData.audio.levels : null;
       if (levels) updateAudioMeterWidget(w.id, levels);
+    } else if (w.type === "ram_cleaner") {
+      updateRamCleanerWidget(w.id);
+    } else if (w.type === "disk_cleaner") {
+      updateDiskCleanerWidget(w.id);
     }
   });
 }
@@ -3408,6 +3414,1016 @@ function initTranslator(id) {
   }
 }
 
+/* ==========================================================================
+   RAM & DISK CLEANERS WIDGET CONTROLLERS
+   ========================================================================== */
+let lastRamInfo = null;
+let isCleaningRam = false;
+let ramLastFetchTime = 0;
+
+async function fetchRamCleanerInfo(force = false) {
+  const now = Date.now();
+  if (!force && lastRamInfo && now - ramLastFetchTime < 3000) {
+    return lastRamInfo;
+  }
+  if (!apiBridge || !apiBridge.get_ram_cleaner_info) return null;
+  try {
+    lastRamInfo = await apiBridge.get_ram_cleaner_info();
+    ramLastFetchTime = now;
+    return lastRamInfo;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function updateRamCleanerWidget(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const info = await fetchRamCleanerInfo();
+  if (!info) return;
+
+  const elUsed = document.getElementById(`${id}_ram_used`);
+  const elPct = document.getElementById(`${id}_ram_pct`);
+  const elActive = document.getElementById(`${id}_ram_active`);
+  const elCleanable = document.getElementById(`${id}_ram_cleanable`);
+  const barGreen = document.getElementById(`${id}_bar_green`);
+  const barRed = document.getElementById(`${id}_bar_red`);
+  const elAmount = document.getElementById(`${id}_amount`);
+  const arc = document.getElementById(`${id}_arc`);
+
+  setText(elUsed, `${info.used_gb} GB`);
+  setText(elPct, `(${info.percent}%)`);
+  setText(elActive, `${info.active_gb} GB`);
+  setText(elCleanable, info.cleanable_str);
+  if (barGreen) barGreen.style.width = `${info.bar_green_pct}%`;
+  if (barRed) barRed.style.width = `${info.bar_red_pct}%`;
+
+  if (!isCleaningRam) {
+    setText(elAmount, info.cleanable_str);
+    setSemicircleGauge(arc, info.cleanable_percent);
+  }
+}
+
+function initRamCleanerWidget(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const btnClean = document.getElementById(`${id}_btn_clean`);
+  const arc = document.getElementById(`${id}_arc`);
+  const elAmount = document.getElementById(`${id}_amount`);
+
+  updateRamCleanerWidget(id);
+
+  if (btnClean) {
+    btnClean.onclick = async (e) => {
+      e.stopPropagation();
+      if (isCleaningRam) return;
+      isCleaningRam = true;
+      btnClean.classList.add("cleaning");
+      const btnText = btnClean.querySelector(".btn-clean-text");
+      if (btnText) btnText.textContent = "Optimizando...";
+      if (arc) setSemicircleGauge(arc, 10);
+      if (elAmount) setText(elAmount, "...");
+
+      try {
+        if (apiBridge && apiBridge.clean_ram) {
+          const res = await apiBridge.clean_ram();
+          if (res && res.success) {
+            btnClean.classList.remove("cleaning");
+            btnClean.classList.add("cleaned");
+            if (btnText) btnText.textContent = `¡Liberados ${res.freed_str}!`;
+            if (arc) setSemicircleGauge(arc, 0);
+            if (elAmount) setText(elAmount, "0 MB");
+            const barGreen = document.getElementById(`${id}_bar_green`);
+            const barRed = document.getElementById(`${id}_bar_red`);
+            const elCleanable = document.getElementById(`${id}_ram_cleanable`);
+            if (barGreen) barGreen.style.width = "100%";
+            if (barRed) barRed.style.width = "0%";
+            if (elCleanable) setText(elCleanable, "0 MB");
+
+            lastRamInfo = res.ram_info;
+            ramLastFetchTime = Date.now();
+            setTimeout(() => {
+              btnClean.classList.remove("cleaned");
+              if (btnText) btnText.textContent = "Optimizar";
+              isCleaningRam = false;
+              updateRamCleanerWidget(id);
+            }, 3000);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Error cleaning RAM:", err);
+      }
+      btnClean.classList.remove("cleaning");
+      if (btnText) btnText.textContent = "Optimizar";
+      isCleaningRam = false;
+      updateRamCleanerWidget(id);
+    };
+  }
+}
+
+let lastDiskInfo = null;
+let isCleaningDisk = false;
+let diskLastFetchTime = 0;
+
+async function fetchDiskCleanerInfo(force = false) {
+  const now = Date.now();
+  if (!force && lastDiskInfo && now - diskLastFetchTime < 10000) {
+    return lastDiskInfo;
+  }
+  if (!apiBridge || !apiBridge.get_disk_cleaner_info) return null;
+  try {
+    lastDiskInfo = await apiBridge.get_disk_cleaner_info();
+    diskLastFetchTime = now;
+    return lastDiskInfo;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function updateDiskCleanerWidget(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const info = await fetchDiskCleanerInfo();
+  if (!info) return;
+
+  const elUsed = document.getElementById(`${id}_c_used`);
+  const elFreePct = document.getElementById(`${id}_c_free_pct`);
+  const elUseful = document.getElementById(`${id}_c_useful`);
+  const elJunk = document.getElementById(`${id}_c_junk`);
+  const barGreen = document.getElementById(`${id}_bar_green`);
+  const barRed = document.getElementById(`${id}_bar_red`);
+  const elAmount = document.getElementById(`${id}_amount`);
+  const arc = document.getElementById(`${id}_arc`);
+
+  const used = Math.round(info.c_used_gb);
+  const total = Math.round(info.c_total_gb);
+  setText(elUsed, `${used}/${total} GB en uso`);
+  if (barGreen) barGreen.style.width = `${info.bar_green_pct}%`;
+  if (barRed) barRed.style.width = `${info.bar_red_pct}%`;
+
+  if (!isCleaningDisk) {
+    setText(elAmount, info.cleanable_str);
+    setSemicircleGauge(arc, info.cleanable_percent);
+  }
+}
+
+function initDiskCleanerWidget(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const btnClean = document.getElementById(`${id}_btn_clean`);
+  const arc = document.getElementById(`${id}_arc`);
+  const elAmount = document.getElementById(`${id}_amount`);
+
+  updateDiskCleanerWidget(id);
+
+  if (btnClean) {
+    btnClean.onclick = async (e) => {
+      e.stopPropagation();
+      if (isCleaningDisk) return;
+      isCleaningDisk = true;
+      btnClean.classList.add("cleaning");
+      const btnText = btnClean.querySelector(".btn-clean-text");
+      if (btnText) btnText.textContent = "Limpiando...";
+      if (arc) setSemicircleGauge(arc, 10);
+      if (elAmount) setText(elAmount, "...");
+
+      try {
+        if (apiBridge && apiBridge.clean_disk) {
+          const res = await apiBridge.clean_disk();
+          if (res && res.success) {
+            btnClean.classList.remove("cleaning");
+            btnClean.classList.add("cleaned");
+            if (btnText) btnText.textContent = `¡Liberados ${res.freed_str}!`;
+            if (arc) setSemicircleGauge(arc, 0);
+            if (elAmount) setText(elAmount, "0 MB");
+            const barGreen = document.getElementById(`${id}_bar_green`);
+            const barRed = document.getElementById(`${id}_bar_red`);
+            const elJunk = document.getElementById(`${id}_c_junk`);
+            if (barGreen) barGreen.style.width = "100%";
+            if (barRed) barRed.style.width = "0%";
+            if (elJunk) setText(elJunk, "0 MB");
+
+            lastDiskInfo = res.disk_info;
+            diskLastFetchTime = Date.now();
+            setTimeout(() => {
+              btnClean.classList.remove("cleaned");
+              if (btnText) btnText.textContent = "Limpiar";
+              isCleaningDisk = false;
+              updateDiskCleanerWidget(id);
+            }, 3000);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Error cleaning disk:", err);
+      }
+      btnClean.classList.remove("cleaning");
+      if (btnText) btnText.textContent = "Limpiar";
+      isCleaningDisk = false;
+      updateDiskCleanerWidget(id);
+    };
+  }
+}
+
+/* ==========================================================================
+   COMMAND BAR & VOICE ASSISTANT CONTROLLER (WHISPER LOCAL + EDGE TTS)
+   ========================================================================== */
+let isAssistantRecording = false;
+let currentAssistantAudio = null;
+let currentVoiceHotkey = "ctrl_shift_space";
+let pendingVoiceHotkey = null;
+let isRecordingHotkey = false;
+
+let assistantSettings = {
+  mode: "fast",
+  voice_enabled: true,
+  voice: "es-ES-AlvaroNeural",
+  volume: 100
+};
+
+let llmPollTimer = null;
+
+function formatHotkeyLabel(hk) {
+  if (!hk || hk === "none" || (typeof hk === "object" && (!hk.vk || hk.code === "none"))) {
+    return "Desactivado";
+  }
+  if (typeof hk === "string") {
+    const map = {
+      "ctrl_shift_space": "Ctrl + Shift + Espacio",
+      "alt_v": "Alt + V",
+      "ctrl_space": "Ctrl + Espacio",
+      "f8": "F8"
+    };
+    return map[hk] || hk;
+  }
+  if (typeof hk === "object") {
+    if (hk.label) return hk.label;
+    const parts = [];
+    if (hk.modifiers && Array.isArray(hk.modifiers)) {
+      if (hk.modifiers.includes("ctrl")) parts.push("Ctrl");
+      if (hk.modifiers.includes("alt")) parts.push("Alt");
+      if (hk.modifiers.includes("shift")) parts.push("Shift");
+      if (hk.modifiers.includes("win")) parts.push("Win");
+    }
+    if (hk.key) {
+      const k = hk.key === " " ? "Espacio" : (hk.key.length === 1 ? hk.key.toUpperCase() : hk.key);
+      parts.push(k);
+    }
+    return parts.join(" + ") || "Desactivado";
+  }
+  return "Desactivado";
+}
+
+function doesKeyEventMatchHotkey(e, hk) {
+  if (isRecordingHotkey) return false;
+  if (!hk || hk === "none" || (typeof hk === "object" && (!hk.vk || hk.code === "none"))) return false;
+
+  if (typeof hk === "string") {
+    if (hk === "ctrl_shift_space") return e.ctrlKey && e.shiftKey && (e.code === "Space" || e.keyCode === 32);
+    if (hk === "alt_v") return e.altKey && (e.key === "v" || e.key === "V" || e.keyCode === 86);
+    if (hk === "ctrl_space") return e.ctrlKey && !e.shiftKey && (e.code === "Space" || e.keyCode === 32);
+    if (hk === "f8") return e.key === "F8" || e.keyCode === 119;
+    return false;
+  }
+
+  if (typeof hk === "object" && hk.modifiers) {
+    const reqCtrl = hk.modifiers.includes("ctrl");
+    const reqAlt = hk.modifiers.includes("alt");
+    const reqShift = hk.modifiers.includes("shift");
+    const reqWin = hk.modifiers.includes("win");
+
+    if (e.ctrlKey !== reqCtrl) return false;
+    if (e.altKey !== reqAlt) return false;
+    if (e.shiftKey !== reqShift) return false;
+    if (e.metaKey !== reqWin) return false;
+
+    if (hk.code && e.code === hk.code) return true;
+    if (hk.vk && (e.keyCode === hk.vk || e.which === hk.vk)) return true;
+    if (hk.key && e.key.toLowerCase() === hk.key.toLowerCase()) return true;
+  }
+  return false;
+}
+
+function playAssistantVoice(audioB64, volPercent) {
+  if (!audioB64) return;
+  try {
+    if (currentAssistantAudio) {
+      currentAssistantAudio.pause();
+      currentAssistantAudio = null;
+    }
+    const audio = new Audio("data:audio/mp3;base64," + audioB64);
+    const vol = (volPercent !== undefined ? volPercent : assistantSettings.volume) / 100;
+    audio.volume = Math.max(0, Math.min(1, vol));
+    currentAssistantAudio = audio;
+    audio.play().catch((err) => console.warn("Audio playback interrupted or blocked:", err));
+  } catch (e) {
+    console.error("Error playing assistant audio:", e);
+  }
+}
+
+async function loadAssistantSettings() {
+  if (apiBridge && apiBridge.get_assistant_settings) {
+    try {
+      const cfg = await apiBridge.get_assistant_settings();
+      if (cfg) {
+        assistantSettings = {
+          mode: cfg.mode || "fast",
+          voice_enabled: cfg.voice_enabled !== false,
+          voice: cfg.voice || "es-ES-AlvaroNeural",
+          volume: cfg.volume !== undefined ? cfg.volume : 100
+        };
+      }
+      if (apiBridge.assistant_get_hotkey) {
+        const hk = await apiBridge.assistant_get_hotkey();
+        if (hk) currentVoiceHotkey = hk;
+      }
+    } catch (e) {
+      console.warn("Error loading assistant settings:", e);
+    }
+  }
+}
+
+async function refreshLlmStatusUI() {
+  const boxReady = document.getElementById("llm-box-ready");
+  const boxNotDownloaded = document.getElementById("llm-box-not-downloaded");
+  const boxDownloading = document.getElementById("llm-box-downloading");
+  const boxError = document.getElementById("llm-box-error");
+  const dlStats = document.getElementById("llm-dl-stats");
+  const dlBar = document.getElementById("llm-progress-bar");
+  const errorText = document.getElementById("llm-error-text");
+
+  if (!apiBridge || !apiBridge.get_llm_status) return;
+
+  try {
+    const status = await apiBridge.get_llm_status();
+    if (!status) return;
+
+    if (boxReady) boxReady.style.display = "none";
+    if (boxNotDownloaded) boxNotDownloaded.style.display = "none";
+    if (boxDownloading) boxDownloading.style.display = "none";
+    if (boxError) boxError.style.display = "none";
+
+    if (status.download_status === "ready") {
+      if (boxReady) boxReady.style.display = "flex";
+      const btnStart = document.getElementById("btn-start-llm-download");
+      if (btnStart) {
+        btnStart.disabled = true;
+        btnStart.style.opacity = "0.5";
+        btnStart.style.cursor = "not-allowed";
+      }
+      if (llmPollTimer) {
+        clearInterval(llmPollTimer);
+        llmPollTimer = null;
+      }
+    } else if (status.download_status === "downloading") {
+      if (boxDownloading) boxDownloading.style.display = "flex";
+      const pct = status.progress_pct || 0;
+      const dlMb = (status.downloaded_mb || 0).toFixed(1);
+      const totalMb = (status.total_mb || 1221.5).toFixed(1);
+      if (dlStats) dlStats.textContent = `${dlMb} / ${totalMb} MB (${pct}%)`;
+      if (dlBar) dlBar.style.width = `${pct}%`;
+
+      if (!llmPollTimer) {
+        llmPollTimer = setInterval(refreshLlmStatusUI, 600);
+      }
+    } else if (status.download_status === "error") {
+      if (boxError) boxError.style.display = "flex";
+      if (errorText) errorText.textContent = status.error_msg || "Error al descargar el modelo.";
+      if (llmPollTimer) {
+        clearInterval(llmPollTimer);
+        llmPollTimer = null;
+      }
+    } else {
+      if (boxNotDownloaded) boxNotDownloaded.style.display = "flex";
+      if (llmPollTimer) {
+        clearInterval(llmPollTimer);
+        llmPollTimer = null;
+      }
+    }
+  } catch (e) {
+    console.warn("Error refreshing LLM status:", e);
+  }
+}
+
+function openAssistantSettingsModal() {
+  const overlay = document.getElementById("assistant-settings-modal-overlay");
+  if (overlay) overlay.style.display = "flex";
+
+  try {
+    const chkVoice = document.getElementById("checkbox-assistant-voice-enabled");
+    const radioAlvaro = document.getElementById("radio-voice-alvaro");
+    const radioElvira = document.getElementById("radio-voice-elvira");
+    const cardAlvaro = document.getElementById("voice-card-alvaro");
+    const cardElvira = document.getElementById("voice-card-elvira");
+    const radioFast = document.getElementById("radio-mode-fast");
+    const radioSmart = document.getElementById("radio-mode-smart");
+    const cardFast = document.getElementById("mode-card-fast");
+    const cardSmart = document.getElementById("mode-card-smart");
+    const sliderVol = document.getElementById("slider-assistant-vol");
+    const valVol = document.getElementById("assistant-vol-val");
+    const feedback = document.getElementById("assistant-test-feedback");
+
+    // Mode Selection
+    const isSmart = (assistantSettings && assistantSettings.mode === "smart");
+    if (radioFast) radioFast.checked = !isSmart;
+    if (radioSmart) radioSmart.checked = isSmart;
+    if (cardFast) cardFast.classList.toggle("selected", !isSmart);
+    if (cardSmart) cardSmart.classList.toggle("selected", isSmart);
+
+    // Voice Selection
+    if (chkVoice) chkVoice.checked = assistantSettings.voice_enabled;
+    const isElvira = (assistantSettings.voice === "es-ES-ElviraNeural");
+    if (radioAlvaro) radioAlvaro.checked = !isElvira;
+    if (radioElvira) radioElvira.checked = isElvira;
+    if (cardAlvaro) cardAlvaro.classList.toggle("selected", !isElvira);
+    if (cardElvira) cardElvira.classList.toggle("selected", isElvira);
+    if (sliderVol) sliderVol.value = assistantSettings.volume;
+    if (valVol) valVol.textContent = `${assistantSettings.volume}%`;
+    if (feedback) {
+      feedback.textContent = "";
+      feedback.className = "assistant-test-feedback";
+    }
+
+    // Hotkey display
+    const lblHotkey = document.getElementById("hotkey-record-label");
+    const hintHotkey = document.getElementById("hotkey-status-hint");
+    if (lblHotkey && apiBridge && apiBridge.assistant_get_hotkey) {
+      apiBridge.assistant_get_hotkey().then(hk => {
+        if (hk) {
+          currentVoiceHotkey = hk;
+          pendingVoiceHotkey = hk;
+          lblHotkey.textContent = formatHotkeyLabel(hk);
+          if (hintHotkey) {
+            hintHotkey.textContent = "Haz clic para cambiar";
+            hintHotkey.style.color = "#3b82f6";
+          }
+        }
+      }).catch(() => {});
+    }
+
+    refreshLlmStatusUI();
+  } catch (err) {
+    console.error("Error opening assistant modal:", err);
+  }
+}
+
+function setupAssistantSettingsModal() {
+  const overlay = document.getElementById("assistant-settings-modal-overlay");
+  const btnClose = document.getElementById("btn-close-assistant-modal");
+  const btnCancel = document.getElementById("btn-cancel-assistant-modal");
+  const btnSave = document.getElementById("btn-save-assistant-modal");
+  const btnTest = document.getElementById("btn-test-assistant-voice");
+  const sliderVol = document.getElementById("slider-assistant-vol");
+  const valVol = document.getElementById("assistant-vol-val");
+  const radioAlvaro = document.getElementById("radio-voice-alvaro");
+  const radioElvira = document.getElementById("radio-voice-elvira");
+  const cardAlvaro = document.getElementById("voice-card-alvaro");
+  const cardElvira = document.getElementById("voice-card-elvira");
+  const radioFast = document.getElementById("radio-mode-fast");
+  const radioSmart = document.getElementById("radio-mode-smart");
+  const cardFast = document.getElementById("mode-card-fast");
+  const cardSmart = document.getElementById("mode-card-smart");
+  const chkVoice = document.getElementById("checkbox-assistant-voice-enabled");
+  const feedback = document.getElementById("assistant-test-feedback");
+
+  // Download buttons
+  const btnStartDl = document.getElementById("btn-start-llm-download");
+  const btnRetryDl = document.getElementById("btn-retry-llm-download");
+  const btnCancelDl = document.getElementById("btn-cancel-llm-download");
+
+  function close() {
+    if (overlay) overlay.style.display = "none";
+    if (llmPollTimer) {
+      clearInterval(llmPollTimer);
+      llmPollTimer = null;
+    }
+  }
+
+  if (btnClose) btnClose.onclick = close;
+  if (btnCancel) btnCancel.onclick = close;
+  if (overlay) {
+    overlay.onclick = (e) => {
+      if (e.target === overlay) close();
+    };
+  }
+
+  function updateModeCards() {
+    if (cardFast && radioFast) cardFast.classList.toggle("selected", radioFast.checked);
+    if (cardSmart && radioSmart) cardSmart.classList.toggle("selected", radioSmart.checked);
+  }
+
+  if (radioFast) radioFast.onchange = updateModeCards;
+  if (radioSmart) radioSmart.onchange = updateModeCards;
+
+  function updateVoiceCards() {
+    if (cardAlvaro && radioAlvaro) cardAlvaro.classList.toggle("selected", radioAlvaro.checked);
+    if (cardElvira && radioElvira) cardElvira.classList.toggle("selected", radioElvira.checked);
+  }
+
+  if (radioAlvaro) radioAlvaro.onchange = updateVoiceCards;
+  if (radioElvira) radioElvira.onchange = updateVoiceCards;
+
+  // LLM Download Actions
+  async function triggerDownload() {
+    if (apiBridge && apiBridge.start_llm_download) {
+      try {
+        await apiBridge.start_llm_download();
+        refreshLlmStatusUI();
+      } catch (err) {
+        console.error("Error starting LLM download:", err);
+      }
+    }
+  }
+
+  if (btnStartDl) btnStartDl.onclick = triggerDownload;
+  if (btnRetryDl) btnRetryDl.onclick = triggerDownload;
+
+  if (btnCancelDl) {
+    btnCancelDl.onclick = async () => {
+      if (apiBridge && apiBridge.cancel_llm_download) {
+        try {
+          await apiBridge.cancel_llm_download();
+          refreshLlmStatusUI();
+        } catch (err) {
+          console.error("Error canceling LLM download:", err);
+        }
+      }
+    };
+  }
+
+  if (sliderVol) {
+    sliderVol.oninput = () => {
+      if (valVol) valVol.textContent = `${sliderVol.value}%`;
+    };
+  }
+
+  if (btnTest) {
+    btnTest.onclick = async (e) => {
+      e.stopPropagation();
+      const chosenVoice = (radioElvira && radioElvira.checked) ? "es-ES-ElviraNeural" : "es-ES-AlvaroNeural";
+      const vol = sliderVol ? parseInt(sliderVol.value, 10) : 100;
+      if (feedback) {
+        feedback.className = "assistant-test-feedback active";
+        feedback.textContent = "Generando muestra de voz...";
+      }
+      btnTest.classList.add("playing");
+      try {
+        if (apiBridge && apiBridge.test_assistant_voice) {
+          const res = await apiBridge.test_assistant_voice(chosenVoice, vol);
+          if (res && res.audio_b64) {
+            playAssistantVoice(res.audio_b64, vol);
+            if (feedback) {
+              feedback.className = "assistant-test-feedback";
+              feedback.textContent = "Reproduciendo muestra...";
+              setTimeout(() => {
+                feedback.textContent = "";
+              }, 4000);
+            }
+          } else {
+            if (feedback) feedback.textContent = "Error al sintetizar voz.";
+          }
+        }
+      } catch (err) {
+        if (feedback) feedback.textContent = `Error: ${err.message || err}`;
+      } finally {
+        setTimeout(() => btnTest.classList.remove("playing"), 1000);
+      }
+    };
+  }
+
+  // Interactive Custom Hotkey Recorder
+  const btnRecordHotkey = document.getElementById("btn-record-hotkey");
+  const btnClearHotkey = document.getElementById("btn-clear-hotkey");
+  const lblRecordHotkey = document.getElementById("hotkey-record-label");
+  const iconRecordHotkey = document.getElementById("hotkey-record-icon");
+  const hintRecordHotkey = document.getElementById("hotkey-status-hint");
+
+  function stopRecordingHotkeyUI(successLabel) {
+    isRecordingHotkey = false;
+    if (btnRecordHotkey) {
+      btnRecordHotkey.style.borderColor = "#2a2e39";
+      btnRecordHotkey.style.boxShadow = "none";
+      btnRecordHotkey.style.background = "#12141a";
+    }
+    if (iconRecordHotkey) iconRecordHotkey.textContent = "⌨️";
+    if (lblRecordHotkey && successLabel) lblRecordHotkey.textContent = successLabel;
+    if (hintRecordHotkey) {
+      hintRecordHotkey.textContent = "Haz clic para cambiar";
+      hintRecordHotkey.style.color = "#3b82f6";
+    }
+  }
+
+  if (btnRecordHotkey) {
+    btnRecordHotkey.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isRecordingHotkey) {
+        stopRecordingHotkeyUI(formatHotkeyLabel(pendingVoiceHotkey || currentVoiceHotkey));
+        return;
+      }
+      isRecordingHotkey = true;
+      btnRecordHotkey.style.borderColor = "#3b82f6";
+      btnRecordHotkey.style.boxShadow = "0 0 12px rgba(59, 130, 246, 0.4)";
+      btnRecordHotkey.style.background = "#182236";
+      if (iconRecordHotkey) iconRecordHotkey.textContent = "🔴";
+      if (lblRecordHotkey) lblRecordHotkey.textContent = "Presiona una tecla o combinación...";
+      if (hintRecordHotkey) {
+        hintRecordHotkey.textContent = "Escuchando teclas (Esc para cancelar)...";
+        hintRecordHotkey.style.color = "#ef4444";
+      }
+    };
+  }
+
+  if (btnClearHotkey) {
+    btnClearHotkey.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      pendingVoiceHotkey = { modifiers: [], vk: 0, code: "none", key: "none", label: "Desactivado" };
+      stopRecordingHotkeyUI("Desactivado");
+      if (hintRecordHotkey) {
+        hintRecordHotkey.textContent = "Atajo desactivado";
+        hintRecordHotkey.style.color = "#8e95a5";
+      }
+    };
+  }
+
+  // Hotkey keydown capture while recording
+  window.addEventListener("keydown", (e) => {
+    if (!isRecordingHotkey) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.key === "Escape") {
+      stopRecordingHotkeyUI(formatHotkeyLabel(pendingVoiceHotkey || currentVoiceHotkey));
+      return;
+    }
+
+    const isModifierKey = ["Control", "Alt", "Shift", "Meta"].includes(e.key);
+    const mods = [];
+    if (e.ctrlKey) mods.push("ctrl");
+    if (e.altKey) mods.push("alt");
+    if (e.shiftKey) mods.push("shift");
+    if (e.metaKey) mods.push("win");
+
+    if (isModifierKey) {
+      const heldParts = [];
+      if (e.ctrlKey) heldParts.push("Ctrl");
+      if (e.altKey) heldParts.push("Alt");
+      if (e.shiftKey) heldParts.push("Shift");
+      if (e.metaKey) heldParts.push("Win");
+      if (lblRecordHotkey) lblRecordHotkey.textContent = heldParts.join(" + ") + " + ...";
+      return;
+    }
+
+    let keyName = e.key;
+    let vk = e.keyCode || e.which;
+    if (e.code === "Space" || e.key === " ") {
+      keyName = "Espacio";
+      vk = 32;
+    } else if (e.key.startsWith("F") && !isNaN(e.key.slice(1))) {
+      keyName = e.key.toUpperCase();
+    } else if (e.key.length === 1) {
+      keyName = e.key.toUpperCase();
+    }
+
+    const labelParts = [];
+    if (mods.includes("ctrl")) labelParts.push("Ctrl");
+    if (mods.includes("alt")) labelParts.push("Alt");
+    if (mods.includes("shift")) labelParts.push("Shift");
+    if (mods.includes("win")) labelParts.push("Win");
+    labelParts.push(keyName);
+
+    const fullLabel = labelParts.join(" + ");
+    pendingVoiceHotkey = {
+      modifiers: mods,
+      vk: vk,
+      code: e.code,
+      key: e.key,
+      label: fullLabel
+    };
+
+    stopRecordingHotkeyUI(fullLabel);
+    if (hintRecordHotkey) {
+      hintRecordHotkey.textContent = "¡Atajo capturado! Guarda para aplicar";
+      hintRecordHotkey.style.color = "#10b981";
+    }
+  }, true);
+
+  if (btnSave) {
+    btnSave.onclick = async (e) => {
+      e.stopPropagation();
+      const chosenVoice = (radioElvira && radioElvira.checked) ? "es-ES-ElviraNeural" : "es-ES-AlvaroNeural";
+      const chosenMode = (radioSmart && radioSmart.checked) ? "smart" : "fast";
+      const vol = sliderVol ? parseInt(sliderVol.value, 10) : 100;
+      const enabled = chkVoice ? chkVoice.checked : true;
+
+      assistantSettings = {
+        mode: chosenMode,
+        voice_enabled: enabled,
+        voice: chosenVoice,
+        volume: vol
+      };
+
+      if (pendingVoiceHotkey !== null) {
+        currentVoiceHotkey = pendingVoiceHotkey;
+      }
+      if (apiBridge && apiBridge.assistant_set_hotkey) {
+        try {
+          await apiBridge.assistant_set_hotkey(currentVoiceHotkey);
+        } catch (e) {}
+      }
+
+      if (apiBridge && apiBridge.save_assistant_settings) {
+        try {
+          await apiBridge.save_assistant_settings(assistantSettings);
+        } catch (err) {
+          console.error("Error saving assistant settings:", err);
+        }
+      }
+      close();
+    };
+  }
+
+  // Global delegation for assistant settings gear button
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-assistant-settings");
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      openAssistantSettingsModal();
+    }
+  });
+
+  // In-app hotkey listener
+  window.addEventListener("keydown", (e) => {
+    if (doesKeyEventMatchHotkey(e, currentVoiceHotkey)) {
+      e.preventDefault();
+      if (window.triggerAssistantHotkey) window.triggerAssistantHotkey();
+    }
+  });
+}
+
+function initCommandBarWidget(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+
+  const btnMic = document.getElementById(`${id}_btn_mic`);
+  const inputEl = document.getElementById(`${id}_input`);
+  const btnSend = document.getElementById(`${id}_btn_send`);
+  const statusEl = document.getElementById(`${id}_status`);
+  const btnSettings = document.getElementById(`${id}_btn_settings`);
+
+  if (btnSettings) {
+    btnSettings.onclick = (e) => {
+      e.stopPropagation();
+      openAssistantSettingsModal();
+    };
+  }
+
+  let autoStopPollTimer = null;
+
+  async function execute(cmdText) {
+    const text = (cmdText || (inputEl ? inputEl.value : "")).trim();
+    if (!text) return;
+    if (statusEl) {
+      statusEl.className = "cmd-status-text thinking";
+      statusEl.textContent = (assistantSettings.mode === "smart") ? `🧠 Razonando: "${text}"...` : `Ejecutando: "${text}"...`;
+    }
+    if (inputEl) inputEl.value = text;
+
+    try {
+      if (apiBridge && apiBridge.assistant_execute_command) {
+        const res = await apiBridge.assistant_execute_command(text);
+        if (res) {
+          if (statusEl) {
+            statusEl.className = res.success ? "cmd-status-text success" : "cmd-status-text error";
+            statusEl.textContent = res.reply || (res.success ? "Acción ejecutada" : "Comando no reconocido");
+          }
+          if (res.audio_b64 && assistantSettings.voice_enabled) {
+            playAssistantVoice(res.audio_b64);
+          }
+
+          function dispatchAssistantIntent(item) {
+            if (!item || !item.intent) return;
+            // RAM & Disk Optimizers
+            if (item.intent === "CLEAN_RAM" || item.intent === "CLEAN_ALL") {
+              fetchRamCleanerInfo(true);
+            }
+            if (item.intent === "CLEAN_DISK" || item.intent === "CLEAN_ALL") {
+              fetchDiskCleanerInfo(true);
+            }
+
+            // Stopwatch (Cronómetro)
+            if (item.intent === "STOPWATCH_START") {
+              const swWidget = activeLayout.find(w => w.type === "stopwatch");
+              if (swWidget) {
+                const swState = stopwatchStates[swWidget.id];
+                if (swState && !swState.isRunning) {
+                  const btn = document.getElementById(`${swWidget.id}_btn_start`);
+                  if (btn) btn.click();
+                }
+              }
+            } else if (item.intent === "STOPWATCH_PAUSE") {
+              const swWidget = activeLayout.find(w => w.type === "stopwatch");
+              if (swWidget) {
+                const swState = stopwatchStates[swWidget.id];
+                if (swState && swState.isRunning) {
+                  const btn = document.getElementById(`${swWidget.id}_btn_start`);
+                  if (btn) btn.click();
+                }
+              }
+            } else if (item.intent === "STOPWATCH_RESET") {
+              const swWidget = activeLayout.find(w => w.type === "stopwatch");
+              if (swWidget) {
+                const btn = document.getElementById(`${swWidget.id}_btn_reset`);
+                if (btn) btn.click();
+              }
+            }
+
+            // Timer (Temporizador)
+            else if (item.intent === "TIMER_START") {
+              const tmWidget = activeLayout.find(w => w.type === "timer");
+              if (tmWidget) {
+                const tmState = timerStates[tmWidget.id];
+                const secs = item.timer_secs || 300;
+                if (tmState) {
+                  if (tmState.isRunning && tmState.intervalId) {
+                    clearInterval(tmState.intervalId);
+                    tmState.isRunning = false;
+                  }
+                  tmState.totalSecs = secs;
+                  tmState.remainingSecs = secs;
+                  const display = document.getElementById(`${tmWidget.id}_display`);
+                  if (display) {
+                    const m = Math.floor(secs / 60);
+                    const s = secs % 60;
+                    display.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+                  }
+                  const btnStart = document.getElementById(`${tmWidget.id}_btn_start`);
+                  if (btnStart) btnStart.click();
+                }
+              }
+            } else if (item.intent === "TIMER_PAUSE") {
+              const tmWidget = activeLayout.find(w => w.type === "timer");
+              if (tmWidget) {
+                const tmState = timerStates[tmWidget.id];
+                if (tmState && tmState.isRunning) {
+                  const btnStart = document.getElementById(`${tmWidget.id}_btn_start`);
+                  if (btnStart) btnStart.click();
+                }
+              }
+            } else if (item.intent === "TIMER_RESET") {
+              const tmWidget = activeLayout.find(w => w.type === "timer");
+              if (tmWidget) {
+                const btnReset = document.getElementById(`${tmWidget.id}_btn_reset`);
+                if (btnReset) btnReset.click();
+              }
+            }
+
+            // Notes & Tasks (Bloc de notas y tareas)
+            else if (item.intent === "NOTES_UPDATE") {
+              if (item.notes) {
+                appNotesCache = item.notes;
+              }
+              activeLayout.forEach(w => {
+                if (w.type === "notes") {
+                  initNotesWidget(w.id);
+                }
+              });
+            }
+
+            // Clipboard Translation
+            else if (item.intent === "TRANSLATE_CLIPBOARD" && item.clipboard_text) {
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(item.clipboard_text).catch(() => {});
+                }
+              } catch (_) {}
+            }
+          }
+
+          if (res.sub_results && Array.isArray(res.sub_results) && res.sub_results.length > 0) {
+            res.sub_results.forEach(sub => dispatchAssistantIntent(sub));
+          } else if (res.intent) {
+            dispatchAssistantIntent(res);
+          }
+        }
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.className = "cmd-status-text error";
+        statusEl.textContent = `Error: ${err.message || err}`;
+      }
+    }
+  }
+
+  async function startRecording() {
+    if (isAssistantRecording) return;
+    isAssistantRecording = true;
+    if (btnMic) btnMic.classList.add("recording");
+    if (statusEl) {
+      statusEl.className = "cmd-status-text thinking";
+      statusEl.textContent = "🎙 Escuchando... Habla y se enviará al callarte (o vuelve a pulsar)";
+    }
+    try {
+      if (apiBridge && apiBridge.assistant_start_recording) {
+        await apiBridge.assistant_start_recording();
+      }
+      if (autoStopPollTimer) clearInterval(autoStopPollTimer);
+      autoStopPollTimer = setInterval(async () => {
+        if (!isAssistantRecording) {
+          clearInterval(autoStopPollTimer);
+          autoStopPollTimer = null;
+          return;
+        }
+        try {
+          if (apiBridge && apiBridge.assistant_check_recording_status) {
+            const st = await apiBridge.assistant_check_recording_status();
+            if (st && st.auto_stop) {
+              clearInterval(autoStopPollTimer);
+              autoStopPollTimer = null;
+              stopAndTranscribe();
+            }
+          }
+        } catch (_) {}
+      }, 150);
+    } catch (err) {
+      isAssistantRecording = false;
+      if (btnMic) btnMic.classList.remove("recording");
+      if (statusEl) {
+        statusEl.className = "cmd-status-text error";
+        statusEl.textContent = "Error al iniciar micrófono.";
+      }
+    }
+  }
+
+  async function stopAndTranscribe() {
+    if (!isAssistantRecording) return;
+    isAssistantRecording = false;
+    if (autoStopPollTimer) {
+      clearInterval(autoStopPollTimer);
+      autoStopPollTimer = null;
+    }
+    if (btnMic) btnMic.classList.remove("recording");
+    if (statusEl) {
+      statusEl.className = "cmd-status-text thinking";
+      statusEl.textContent = "🧠 Transcribiendo con Whisper...";
+    }
+    try {
+      if (apiBridge && apiBridge.assistant_stop_recording) {
+        const res = await apiBridge.assistant_stop_recording();
+        if (res && res.success && res.text) {
+          if (inputEl) inputEl.value = res.text;
+          execute(res.text);
+        } else {
+          if (statusEl) {
+            statusEl.className = "cmd-status-text error";
+            statusEl.textContent = res ? (res.error || "No se detectó voz.") : "Error en transcripción.";
+          }
+        }
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.className = "cmd-status-text error";
+        statusEl.textContent = `Error de transcripción: ${err.message || err}`;
+      }
+    }
+  }
+
+  window.triggerAssistantHotkey = () => {
+    if (!isAssistantRecording) {
+      startRecording();
+    } else {
+      stopAndTranscribe();
+    }
+  };
+
+  if (btnSend) {
+    btnSend.onclick = (e) => {
+      e.stopPropagation();
+      execute();
+    };
+  }
+
+  if (inputEl) {
+    inputEl.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        execute();
+      }
+    };
+  }
+
+  if (btnMic) {
+    btnMic.onclick = (e) => {
+      e.stopPropagation();
+      window.triggerAssistantHotkey();
+    };
+  }
+}
+
 // DISPATCHER: INITIALIZE ALL INTERACTIVE WIDGETS
 function initInteractiveWidgets() {
   activeLayout.forEach((w) => {
@@ -3431,6 +4447,12 @@ function initInteractiveWidgets() {
       initUnitConverter(w.id);
     } else if (w.type === "translator") {
       initTranslator(w.id);
+    } else if (w.type === "ram_cleaner") {
+      initRamCleanerWidget(w.id);
+    } else if (w.type === "disk_cleaner") {
+      initDiskCleanerWidget(w.id);
+    } else if (w.type === "command_bar") {
+      initCommandBarWidget(w.id);
     }
   });
 }

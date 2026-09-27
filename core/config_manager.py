@@ -46,6 +46,11 @@ DEFAULT_CONFIG = {
         "latitude": 37.3891,
         "longitude": -5.9845,
         "update_interval_minutes": 10
+    },
+    "assistant": {
+        "voice_enabled": True,
+        "voice": "es-ES-AlvaroNeural",
+        "volume": 100
     }
 }
 
@@ -56,9 +61,12 @@ def get_base_dir():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def get_resource_path(relative_path):
-    """Returns absolute path to bundled resource (handles PyInstaller _MEIPASS)."""
+    """Returns absolute path to bundled resource (handles PyInstaller _MEIPASS and _internal)."""
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
+    internal_path = os.path.join(get_base_dir(), "_internal", relative_path)
+    if os.path.exists(internal_path):
+        return internal_path
     return os.path.join(get_base_dir(), relative_path)
 
 def get_appdata_dir() -> str:

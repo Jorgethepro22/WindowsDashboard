@@ -220,6 +220,20 @@
           </div>
           <span class="catalog-item-desc">Barras de CPU, GPU, RAM, VRAM, Discos, Red</span>
         </div>
+        <div class="catalog-item" draggable="true" data-widget-type="ram_cleaner" data-category="recursos">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">1x2</span>
+            <span class="catalog-item-name">Limpiador de RAM</span>
+          </div>
+          <span class="catalog-item-desc">Optimiza y libera memoria física inactiva</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="disk_cleaner" data-category="recursos">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">1x2</span>
+            <span class="catalog-item-name">Limpiador de Disco</span>
+          </div>
+          <span class="catalog-item-desc">Purga archivos temporales y papelera</span>
+        </div>
 
         <!-- MEDIA & AUDIO -->
         <div class="catalog-item" draggable="true" data-widget-type="media" data-category="media">
@@ -304,6 +318,13 @@
             <span class="catalog-item-name">Traductor de Texto</span>
           </div>
           <span class="catalog-item-desc">Traducción rápida con botones de pegar y copiar</span>
+        </div>
+        <div class="catalog-item" draggable="true" data-widget-type="command_bar" data-category="utilidades">
+          <div class="catalog-item-header">
+            <span class="catalog-item-badge">2x1</span>
+            <span class="catalog-item-name">Comandos & Voz (IA)</span>
+          </div>
+          <span class="catalog-item-desc">Dicta o escribe órdenes a tu PC con Whisper local</span>
         </div>
 
         <!-- FOTOS & ACCESOS -->
@@ -671,6 +692,182 @@
           <div class="shortcut-modal-footer" style="margin-top: 1.2rem;">
             <button type="button" class="btn-modal-cancel" id="btn-cancel-new-design-modal">Cancelar</button>
             <button type="button" class="btn-modal-save" id="btn-confirm-new-design">Crear Diseño</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSISTANT SETTINGS MODAL (VOZ Y VOLUMEN TTS) -->
+    <div class="shortcut-modal-overlay" id="assistant-settings-modal-overlay" style="display: none;">
+      <div class="shortcut-modal assistant-settings-modal-box">
+        <div class="shortcut-modal-header">
+          <div class="modal-title-with-icon">
+            <span class="modal-icon-badge">🎙</span>
+            <h3 class="modal-title">Configuración del Asistente</h3>
+          </div>
+          <button class="btn-close-modal" id="btn-close-assistant-modal" title="Cerrar ventana">✕</button>
+        </div>
+        <div class="shortcut-modal-body">
+          <!-- MODE SELECTOR (FAST vs SMART) -->
+          <div class="modal-field-group">
+            <label class="modal-label">Modo de Operación:</label>
+            <div class="assistant-mode-grid">
+              <label class="assistant-mode-card" id="mode-card-fast">
+                <input type="radio" name="assistant-mode-choice" value="fast" checked id="radio-mode-fast">
+                <div class="mode-card-body">
+                  <div class="mode-card-avatar">⚡</div>
+                  <div class="mode-card-details">
+                    <span class="mode-card-name">Modo Rápido</span>
+                    <span class="mode-card-desc">Control instantáneo de Windows, apps, volumen y preguntas frecuentes.</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="assistant-mode-card" id="mode-card-smart">
+                <input type="radio" name="assistant-mode-choice" value="smart" id="radio-mode-smart">
+                <div class="mode-card-body">
+                  <div class="mode-card-avatar">🧠</div>
+                  <div class="mode-card-details">
+                    <div class="mode-card-title-row">
+                      <span class="mode-card-name">Modo Inteligente</span>
+                      <span class="mode-card-pill">IA Local 2B</span>
+                    </div>
+                    <span class="mode-card-desc">IA local con razonamiento alto (High). Resuelve problemas y conversa.</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- LOCAL LLM MODEL DOWNLOAD / STATUS CARD -->
+          <div class="llm-model-card" id="llm-model-card">
+            <div class="llm-card-header">
+              <span class="llm-card-icon">🧠</span>
+              <div class="llm-card-meta">
+                <span class="llm-card-title">Cerebro Local IA (Qwen3.5 2B)</span>
+                <span class="llm-card-specs">GGUF Q4_K_M • ~1.2 GB • Sin internet ni coste</span>
+              </div>
+            </div>
+
+            <!-- Ready state -->
+            <div class="llm-state-box" id="llm-box-ready" style="display: none;">
+              <div class="llm-ready-row">
+                <span class="llm-ready-badge">✓ Modelo Instalado y Listo</span>
+                <span class="llm-ready-sub">Razonamiento alto activado. Respuestas concisas para voz.</span>
+              </div>
+            </div>
+
+            <!-- Idle / Not downloaded state -->
+            <div class="llm-state-box" id="llm-box-not-downloaded" style="display: none;">
+              <p class="llm-box-desc">El modelo no está descargado aún. Descárgalo para poder usar el Modo Inteligente.</p>
+              <button type="button" class="btn-llm-action btn-llm-download" id="btn-start-llm-download">
+                <span>📥</span> Descargar Modelo (~1.2 GB)
+              </button>
+            </div>
+
+            <!-- Downloading state -->
+            <div class="llm-state-box" id="llm-box-downloading" style="display: none;">
+              <div class="llm-download-header">
+                <span class="llm-dl-label" id="llm-dl-label">Descargando modelo...</span>
+                <span class="llm-dl-stats" id="llm-dl-stats">0.0 / 1221.5 MB (0%)</span>
+              </div>
+              <div class="llm-progress-track">
+                <div class="llm-progress-bar" id="llm-progress-bar" style="width: 0%;"></div>
+              </div>
+              <button type="button" class="btn-llm-cancel" id="btn-cancel-llm-download">
+                ✕ Cancelar descarga
+              </button>
+            </div>
+
+            <!-- Error state -->
+            <div class="llm-state-box" id="llm-box-error" style="display: none;">
+              <span class="llm-error-text" id="llm-error-text">Error al descargar el modelo.</span>
+              <button type="button" class="btn-llm-action btn-llm-retry" id="btn-retry-llm-download">
+                <span>🔄</span> Reintentar descarga
+              </button>
+            </div>
+          </div>
+
+          <!-- VOICE TOGGLE -->
+          <label class="settings-toggle-row" style="margin-top: 1rem;">
+            <span class="settings-toggle-label">Respuesta por voz (TTS Neural)</span>
+            <input type="checkbox" id="checkbox-assistant-voice-enabled" class="settings-checkbox" checked>
+            <span class="settings-switch"></span>
+          </label>
+          <span class="settings-field-hint" style="margin-top: 0.2rem; display: block;">El asistente responderá con voz hablada a tus preguntas y comandos.</span>
+
+          <!-- VOICE SELECTION -->
+          <div class="modal-field-group" style="margin-top: 1rem;">
+            <label class="modal-label">Voz en Español:</label>
+            <div class="assistant-voice-grid">
+              <label class="assistant-voice-card" id="voice-card-alvaro">
+                <input type="radio" name="assistant-voice-choice" value="es-ES-AlvaroNeural" checked id="radio-voice-alvaro">
+                <div class="voice-card-body">
+                  <div class="voice-card-avatar">👨</div>
+                  <div class="voice-card-details">
+                    <span class="voice-card-name">Álvaro</span>
+                    <span class="voice-card-desc">Voz masculina natural (España)</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="assistant-voice-card" id="voice-card-elvira">
+                <input type="radio" name="assistant-voice-choice" value="es-ES-ElviraNeural" id="radio-voice-elvira">
+                <div class="voice-card-body">
+                  <div class="voice-card-avatar">👩</div>
+                  <div class="voice-card-details">
+                    <span class="voice-card-name">Elvira</span>
+                    <span class="voice-card-desc">Voz femenina natural (España)</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- VOLUME SLIDER -->
+          <div class="modal-field-group" style="margin-top: 1rem;">
+            <div class="assistant-vol-header">
+              <label class="modal-label">Volumen de la voz:</label>
+              <span class="assistant-vol-badge" id="assistant-vol-val">100%</span>
+            </div>
+            <div class="assistant-vol-track-wrap">
+              <span class="vol-icon-min">🔈</span>
+              <input type="range" id="slider-assistant-vol" min="0" max="100" value="100" class="assistant-slider-range" />
+              <span class="vol-icon-max">🔊</span>
+            </div>
+          </div>
+
+          <!-- KEYBOARD SHORTCUT / ATAJO DE VOZ PERSONALIZABLE -->
+          <div class="modal-field-group" style="margin-top: 1rem;">
+            <div class="assistant-vol-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+              <label class="modal-label" style="margin-bottom: 0;">⌨️ Atajo de teclado para hablar:</label>
+              <span id="hotkey-status-hint" style="font-size: 0.75rem; color: #3b82f6; font-weight: 500;">Haz clic para cambiar</span>
+            </div>
+            <div class="hotkey-recorder-container" style="display: flex; gap: 0.5rem; align-items: center;">
+              <button type="button" id="btn-record-hotkey" class="btn-record-hotkey" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.6rem; background: #12141a; color: #fff; border: 1px solid #2a2e39; border-radius: 8px; padding: 0.65rem 1rem; font-size: 0.9rem; cursor: pointer; outline: none; transition: all 0.2s ease;">
+                <span id="hotkey-record-icon">⌨️</span>
+                <span id="hotkey-record-label" style="font-weight: 600; letter-spacing: 0.5px;">Ctrl + Shift + Espacio</span>
+              </button>
+              <button type="button" id="btn-clear-hotkey" title="Desactivar atajo" style="background: #1b1e28; color: #8e95a5; border: 1px solid #2a2e39; border-radius: 8px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.color='#ef4444'; this.style.borderColor='#ef4444';" onmouseout="this.style.color='#8e95a5'; this.style.borderColor='#2a2e39';">
+                ✕
+              </button>
+            </div>
+            <span style="font-size: 0.75rem; color: #8e95a5; margin-top: 0.4rem; display: block;">Haz clic en el recuadro y pulsa cualquier tecla o combinación (ej. F9, Ctrl+Alt+K, Alt+V). Funciona en todo Windows y auto-envía al callarte.</span>
+          </div>
+
+          <!-- TEST VOICE BUTTON -->
+          <div class="assistant-test-section" style="margin-top: 1rem;">
+            <button type="button" class="btn-assistant-test" id="btn-test-assistant-voice">
+              <span class="btn-test-icon">▶</span>
+              <span class="btn-test-text">Probar voz</span>
+            </button>
+            <span class="assistant-test-feedback" id="assistant-test-feedback"></span>
+          </div>
+
+          <!-- FOOTER -->
+          <div class="shortcut-modal-footer" style="margin-top: 1.2rem;">
+            <button type="button" class="btn-modal-cancel" id="btn-cancel-assistant-modal">Cancelar</button>
+            <button type="button" class="btn-modal-save" id="btn-save-assistant-modal">Guardar Ajustes</button>
           </div>
         </div>
       </div>

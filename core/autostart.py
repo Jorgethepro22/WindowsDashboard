@@ -15,6 +15,8 @@ def get_startup_command() -> str:
     
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     dist_exe = os.path.join(base_dir, "dist", "WindowsDashboard", "WindowsDashboard.exe")
+    if not os.path.exists(dist_exe):
+        dist_exe = os.path.join(base_dir, "dist", "WindowsDashboardApp", "WindowsDashboard.exe")
     if os.path.exists(dist_exe):
         return f'"{os.path.abspath(dist_exe)}"'
     

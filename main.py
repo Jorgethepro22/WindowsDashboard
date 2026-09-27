@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pycaw")
 warnings.filterwarnings("ignore", message=".*COMError attempting to get property.*")
@@ -12,19 +13,168 @@ from core.audio_controller import AudioController
 from core.media_session import MediaSessionManager
 from core.weather_service import WeatherService
 from core.autostart import is_autostart_enabled, set_autostart
+from core.cleaner_service import CleanerService
+from core.assistant_service import AssistantService
+import ctypes
+from ctypes import wintypes
+import threading
+
+MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
+MOD_WIN = 0x0008
+MOD_NOREPEAT = 0x4000
+VK_SPACE = 0x20
+VK_F8 = 0x77
+WM_HOTKEY = 0x0312
+
+HOTKEY_DEFINITIONS = {
+    "ctrl_shift_space": (MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, VK_SPACE),
+    "alt_v": (MOD_ALT | MOD_NOREPEAT, ord('V')),
+    "ctrl_space": (MOD_CONTROL | MOD_NOREPEAT, VK_SPACE),
+    "f8": (MOD_NOREPEAT, VK_F8),
+    "none": None
+}
+
+def parse_hotkey_spec(spec):
+    """
+    Parses hotkey definition which can be:
+    - Legacy preset string: 'ctrl_shift_space', 'alt_v', 'ctrl_space', 'f8', 'none'
+    - Dict with custom keys: {'modifiers': ['ctrl', 'alt'], 'vk': 75, 'label': 'Ctrl + Alt + K'}
+    - JSON string representation of the above
+    Returns (fsModifiers, vk) or None if disabled/invalid.
+    """
+    if not spec or spec in ("none", "disabled"):
+        return None
+
+    if isinstance(spec, str):
+        if spec in HOTKEY_DEFINITIONS:
+            return HOTKEY_DEFINITIONS[spec]
+        try:
+            spec = json.loads(spec)
+        except Exception:
+            return None
+
+    if isinstance(spec, dict):
+        if spec.get("code") == "none" or spec.get("vk") in (0, None):
+            return None
+        vk = spec.get("vk")
+        if not vk:
+            return None
+        modifiers_list = spec.get("modifiers") or []
+        fs_modifiers = MOD_NOREPEAT
+        for m in modifiers_list:
+            m_lower = str(m).lower()
+            if "ctrl" in m_lower or "control" in m_lower:
+                fs_modifiers |= MOD_CONTROL
+            elif "alt" in m_lower:
+                fs_modifiers |= MOD_ALT
+            elif "shift" in m_lower:
+                fs_modifiers |= MOD_SHIFT
+            elif "win" in m_lower or "meta" in m_lower:
+                fs_modifiers |= MOD_WIN
+        return (fs_modifiers, int(vk))
+
+    return None
+
+class GlobalHotkeyManager:
+    """Registers and listens for global system hotkeys in Windows."""
+    def __init__(self, callback):
+        self._callback = callback
+        self._hotkey_id = 9988
+        self._current_hotkey_spec = "ctrl_shift_space"
+        self._thread = None
+        self._thread_id = None
+        self._running = False
+
+    def start(self, hotkey_spec="ctrl_shift_space"):
+        self._current_hotkey_spec = hotkey_spec
+        self._running = True
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def update_hotkey(self, hotkey_spec):
+        self._current_hotkey_spec = hotkey_spec
+        if self._thread_id:
+            ctypes.windll.user32.PostThreadMessageW(self._thread_id, 0x0400 + 1, 0, 0)
+
+    def _run(self):
+        user32 = ctypes.windll.user32
+        self._thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
+        registered = False
+
+        def do_register():
+            nonlocal registered
+            if registered:
+                user32.UnregisterHotKey(None, self._hotkey_id)
+                registered = False
+            defn = parse_hotkey_spec(self._current_hotkey_spec)
+            if defn:
+                mods, vk = defn
+                success = user32.RegisterHotKey(None, self._hotkey_id, mods, vk)
+                if success:
+                    registered = True
+                    label = self._current_hotkey_spec.get("label", str(self._current_hotkey_spec)) if isinstance(self._current_hotkey_spec, dict) else str(self._current_hotkey_spec)
+                    print(f"[GlobalHotkeyManager] Hotkey '{label}' registered successfully (mods={hex(mods)}, vk={hex(vk)}).")
+                else:
+                    err = ctypes.windll.kernel32.GetLastError()
+                    print(f"[GlobalHotkeyManager] Could not register hotkey (mods={hex(mods)}, vk={hex(vk)}). WinError: {err}")
+            else:
+                print("[GlobalHotkeyManager] Hotkey disabled.")
+
+        do_register()
+
+        msg = wintypes.MSG()
+        while self._running:
+            res = user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
+            if res <= 0:
+                break
+            if msg.message == WM_HOTKEY:
+                if msg.wParam == self._hotkey_id:
+                    print("[GlobalHotkeyManager] Hotkey pressed -> Invoking voice.")
+                    try:
+                        self._callback()
+                    except Exception as e:
+                        print(f"[GlobalHotkeyManager] Error calling callback: {e}")
+            elif msg.message == (0x0400 + 1):
+                do_register()
+
+        if registered:
+            user32.UnregisterHotKey(None, self._hotkey_id)
+
 
 class DashboardApi:
-    def __init__(self, config_mgr, monitor_mgr, system_stats, audio_ctrl, media_session, weather_svc):
+    def __init__(self, config_mgr, monitor_mgr, system_stats, audio_ctrl, media_session, weather_svc, cleaner_svc=None, assistant_svc=None):
         self._config_mgr = config_mgr
         self._monitor_mgr = monitor_mgr
         self._system_stats = system_stats
         self._audio_ctrl = audio_ctrl
         self._media_session = media_session
         self._weather_svc = weather_svc
+        self._cleaner_svc = cleaner_svc or CleanerService()
+        self._assistant_svc = assistant_svc or AssistantService(
+            self._audio_ctrl,
+            self._media_session,
+            self._cleaner_svc,
+            self._weather_svc,
+            self._config_mgr,
+            self._system_stats
+        )
         self._window = None
 
     def set_window(self, window):
         self._window = window
+
+    def set_hotkey_manager(self, hotkey_mgr):
+        self._hotkey_mgr = hotkey_mgr
+
+    def on_hotkey_triggered(self):
+        """Called when global voice hotkey is pressed in Windows."""
+        try:
+            if self._window:
+                self._window.evaluate_js("window.triggerAssistantHotkey && window.triggerAssistantHotkey()")
+        except Exception as e:
+            print(f"[DashboardApi] Error dispatching hotkey to UI: {e}")
 
     def get_dashboard_data(self):
         return {
@@ -95,6 +245,63 @@ class DashboardApi:
 
     def set_start_with_windows(self, enabled):
         return set_autostart(bool(enabled))
+
+    # =========================================================================
+    # CLEANERS API
+    # =========================================================================
+    def get_ram_cleaner_info(self):
+        return self._cleaner_svc.get_ram_info()
+
+    def clean_ram(self):
+        return self._cleaner_svc.clean_ram()
+
+    def get_disk_cleaner_info(self):
+        return self._cleaner_svc.get_disk_info()
+
+    def clean_disk(self):
+        return self._cleaner_svc.clean_disk()
+
+    # =========================================================================
+    # ASSISTANT / VOICE COMMANDS API
+    # =========================================================================
+    def assistant_start_recording(self):
+        return self._assistant_svc.start_recording()
+
+    def assistant_stop_recording(self):
+        return self._assistant_svc.stop_recording_and_transcribe()
+
+    def assistant_execute_command(self, text):
+        return self._assistant_svc.execute_command(text)
+
+    def assistant_check_recording_status(self):
+        return self._assistant_svc.check_recording_status()
+
+    def assistant_get_hotkey(self):
+        return self._config_mgr.get("assistant_hotkey", "ctrl_shift_space")
+
+    def assistant_set_hotkey(self, hotkey_id):
+        self._config_mgr.set("assistant_hotkey", hotkey_id)
+        if hasattr(self, "_hotkey_mgr") and self._hotkey_mgr:
+            self._hotkey_mgr.update_hotkey(hotkey_id)
+        return True
+
+    def get_assistant_settings(self):
+        return self._assistant_svc.get_settings()
+
+    def save_assistant_settings(self, settings):
+        return self._assistant_svc.save_settings(settings)
+
+    def test_assistant_voice(self, voice=None, volume=100):
+        return self._assistant_svc.test_voice(voice, volume)
+
+    def get_llm_status(self):
+        return self._assistant_svc.llm_service.get_status()
+
+    def start_llm_download(self):
+        return self._assistant_svc.llm_service.start_download()
+
+    def cancel_llm_download(self):
+        return self._assistant_svc.llm_service.cancel_download()
 
     def media_play_pause(self):
         return self._media_session.play_pause()
@@ -560,6 +767,15 @@ def main():
     audio_ctrl = AudioController()
     media_session = MediaSessionManager()
     weather_svc = WeatherService(config_mgr)
+    cleaner_svc = CleanerService()
+    assistant_svc = AssistantService(
+        audio_ctrl,
+        media_session,
+        cleaner_svc,
+        weather_svc,
+        config_mgr,
+        system_stats
+    )
 
     api = DashboardApi(
         config_mgr,
@@ -567,7 +783,9 @@ def main():
         system_stats,
         audio_ctrl,
         media_session,
-        weather_svc
+        weather_svc,
+        cleaner_svc,
+        assistant_svc
     )
 
     # Determine initial monitor positioning
@@ -592,6 +810,12 @@ def main():
     )
 
     api.set_window(window)
+
+    # Start Global System Voice Hotkey
+    saved_hotkey = config_mgr.get("assistant_hotkey", "ctrl_shift_space")
+    hotkey_mgr = GlobalHotkeyManager(api.on_hotkey_triggered)
+    api.set_hotkey_manager(hotkey_mgr)
+    hotkey_mgr.start(saved_hotkey)
 
     # Start Edge Chromium WebView2
     webview.start(gui="edgechromium", debug=False)

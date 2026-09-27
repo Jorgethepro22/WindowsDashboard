@@ -903,6 +903,153 @@ const WIDGET_DEFINITIONS = {
         </div>
       </div>
     `
+  },
+  ram_cleaner: {
+    type: "ram_cleaner",
+    name: "Limpiador de RAM",
+    defaultW: 1,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card cleaner-card ram-cleaner-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">RAM</span>
+            <h2 class="card-title">OPTIMIZADOR</h2>
+          </div>
+        </div>
+        <div class="cleaner-top-info">
+          <div class="cleaner-bar-meta">
+            <span class="cleaner-bar-label">EN USO</span>
+            <div class="cleaner-bar-right-group">
+              <span class="cleaner-bar-value" id="${id}_ram_used">-- GB</span>
+              <span class="cleaner-bar-pct" id="${id}_ram_pct">(0%)</span>
+            </div>
+          </div>
+          <div class="cleaner-split-bar" title="Verde: Memoria activa | Rojo: Memoria optimizable">
+            <div class="cleaner-bar-seg-green" id="${id}_bar_green" style="width: 85%;"></div>
+            <div class="cleaner-bar-seg-red" id="${id}_bar_red" style="width: 15%;"></div>
+          </div>
+        </div>
+        <div class="cleaner-gauge-box">
+          <div class="cleaner-gauge-wrap">
+            <svg viewBox="0 0 200 120" class="cleaner-gauge-svg">
+              <defs>
+                <linearGradient id="${id}_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#00f2fe" />
+                  <stop offset="50%" stop-color="#4facfe" />
+                  <stop offset="100%" stop-color="#ff2a3b" />
+                </linearGradient>
+              </defs>
+              <path class="cleaner-gauge-bg" d="M 15 105 A 85 85 0 0 1 185 105" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="13" stroke-linecap="round"/>
+              <path class="cleaner-gauge-arc" id="${id}_arc" d="M 15 105 A 85 85 0 0 1 185 105" fill="none" stroke="url(#${id}_grad)" stroke-width="13" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04"/>
+            </svg>
+            <div class="cleaner-center-val">
+              <span class="cleaner-amount" id="${id}_amount">--</span>
+              <span class="cleaner-sub">OPTIMIZABLE</span>
+            </div>
+          </div>
+          <button type="button" class="btn-cleaner-action btn-clean-ram" id="${id}_btn_clean" title="Optimizar memoria RAM liberando working sets inactivos">
+            <span class="btn-clean-icon">⚡</span>
+            <span class="btn-clean-text">Optimizar</span>
+          </button>
+        </div>
+      </div>
+    `
+  },
+  disk_cleaner: {
+    type: "disk_cleaner",
+    name: "Limpiador de Disco",
+    defaultW: 1,
+    defaultH: 2,
+    render: (id) => `
+      <div class="card widget-card cleaner-card disk-cleaner-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">DISCO</span>
+            <h2 class="card-title">LIMPIADOR</h2>
+          </div>
+        </div>
+        <div class="cleaner-top-info">
+          <div class="cleaner-bar-meta">
+            <span class="cleaner-bar-label">C:</span>
+            <span class="cleaner-bar-value disk-usage-text" id="${id}_c_used">-- / -- GB en uso</span>
+          </div>
+          <div class="cleaner-split-bar" title="Verde: Archivos útiles | Rojo: Basura y temporales">
+            <div class="cleaner-bar-seg-green" id="${id}_bar_green" style="width: 90%;"></div>
+            <div class="cleaner-bar-seg-red" id="${id}_bar_red" style="width: 10%;"></div>
+          </div>
+        </div>
+        <div class="cleaner-gauge-box">
+          <div class="cleaner-gauge-wrap">
+            <svg viewBox="0 0 200 120" class="cleaner-gauge-svg">
+              <defs>
+                <linearGradient id="${id}_grad_disk" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#38ef7d" />
+                  <stop offset="60%" stop-color="#11998e" />
+                  <stop offset="100%" stop-color="#ff0844" />
+                </linearGradient>
+              </defs>
+              <path class="cleaner-gauge-bg" d="M 15 105 A 85 85 0 0 1 185 105" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="13" stroke-linecap="round"/>
+              <path class="cleaner-gauge-arc" id="${id}_arc" d="M 15 105 A 85 85 0 0 1 185 105" fill="none" stroke="url(#${id}_grad_disk)" stroke-width="13" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04"/>
+            </svg>
+            <div class="cleaner-center-val">
+              <span class="cleaner-amount" id="${id}_amount">--</span>
+              <span class="cleaner-sub">BASURA</span>
+            </div>
+          </div>
+          <button type="button" class="btn-cleaner-action btn-clean-disk" id="${id}_btn_clean" title="Limpiar archivos temporales y vaciar papelera">
+            <span class="btn-clean-icon">🧹</span>
+            <span class="btn-clean-text">Limpiar</span>
+          </button>
+        </div>
+      </div>
+    `
+  },
+  command_bar: {
+    type: "command_bar",
+    name: "Barra de Comandos & Voz",
+    defaultW: 2,
+    defaultH: 1,
+    render: (id) => `
+      <div class="card widget-card command-bar-card" id="${id}">
+        <div class="widget-delete-corner" title="Eliminar widget"><span class="delete-x">×</span></div>
+        <div class="card-header mini-header">
+          <div class="card-title-group">
+            <span class="card-badge">ASISTENTE IA</span>
+            <h2 class="card-title">COMANDOS & VOZ</h2>
+          </div>
+          <button type="button" class="btn-assistant-settings" id="${id}_btn_settings" title="Configurar voz y volumen del Asistente">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          </button>
+        </div>
+        <div class="cmd-body-container">
+          <div class="cmd-input-container">
+            <button type="button" class="btn-cmd-mic" id="${id}_btn_mic" title="Haz clic para grabar tu voz con Whisper">
+              <svg class="mic-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+              <span class="mic-pulse-ring"></span>
+            </button>
+            <input type="text" class="cmd-input" id="${id}_input" placeholder="Escribe o pulsa el micro (ej. 'ponme spotify', 'silencia micro')..." autocomplete="off" />
+            <button type="button" class="btn-cmd-send" id="${id}_btn_send" title="Ejecutar comando">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+          </div>
+          <div class="cmd-status-row">
+            <span class="cmd-status-text" id="${id}_status">Escribe o dicta una acción para tu ordenador</span>
+          </div>
+        </div>
+      </div>
+    `
   }
 };
+
+function setSemicircleGauge(arcElement, percent) {
+  if (!arcElement) return;
+  const SEMI_CIRCUMFERENCE = 267.04; // Math.PI * 85
+  const pct = Math.max(0, Math.min(100, Number(percent) || 0));
+  const offset = SEMI_CIRCUMFERENCE - (pct / 100) * SEMI_CIRCUMFERENCE;
+  arcElement.style.strokeDasharray = SEMI_CIRCUMFERENCE;
+  arcElement.style.strokeDashoffset = offset;
+}
 
